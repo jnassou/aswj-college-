@@ -27,8 +27,8 @@ export type CheckInClass = {
 function badge(status: string | null) {
   if (status === 'present') return 'green';
   if (status === 'late') return 'blue';
-  if (status === 'absent') return 'red';
-  if (status === 'excused') return 'grey';
+  if (status === 'absent' || status === 'absent_unexcused') return 'red';
+  if (status === 'excused' || status === 'absent_excused') return 'grey';
   return 'amber';
 }
 
@@ -207,7 +207,7 @@ export default function CheckInClient({ classes, today }: { classes: CheckInClas
                   <tr key={student.enrolmentId}>
                     <td><strong>{student.name}</strong></td>
                     <td><span className={`badge ${student.enrolmentStatus === 'suspended' ? 'red' : 'green'}`}>{student.enrolmentStatus}</span></td>
-                    <td><span className={`badge ${badge(student.attendanceStatus)}`}>{student.attendanceStatus ?? 'Not marked'}</span></td>
+                    <td><span className={`badge ${badge(student.attendanceStatus)}`}>{student.attendanceStatus === 'absent_unexcused' ? 'Absent' : student.attendanceStatus === 'absent_excused' ? 'Excused' : student.attendanceStatus ?? 'Not marked'}</span></td>
                     <td>
                       {student.enrolmentStatus === 'suspended' ? <span className="small">Suspended</span> : (
                         <div className="actions">

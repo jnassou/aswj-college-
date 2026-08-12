@@ -1,43 +1,4 @@
 'use client';
-import { useState, useTransition } from 'react';
-import type { ReviewRow } from '../../../lib/live-data';
-import { resolveAttendanceReview, suspendEnrolment } from '../actions/attendance-actions';
-
-type Student = ReviewRow;
-
-export default function ReviewClient({initialStudents}:{initialStudents:Student[]}){
-  const [students,setStudents]=useState<Student[]>(initialStudents);
-  const [selected,setSelected]=useState<Student|null>(null);
-  const [reason,setReason]=useState('Three consecutive unexcused absences');
-  const [note,setNote]=useState('');
-  const [notify,setNotify]=useState(true);
-  const [pending,startTransition]=useTransition();
-  const isDemo=(s:Student)=>!s.enrolmentId;
-
-  const suspend=()=>{
-    if(!selected) return;
-    const target=selected;
-    const old=students;
-    setStudents(v=>v.map(s=>s.id===target.id?{...s,status:'Suspended'}:s));
-    setSelected(null);
-    if(!isDemo(target)) startTransition(async()=>{
-      try { await suspendEnrolment(target.enrolmentId!,reason,note,notify); }
-      catch { setStudents(old); alert('The suspension could not be saved.'); }
-    });
-    setNote('');
-  };
-  const resolve=(s:Student,resolution:'excused'|'kept_enrolled')=>{
-    const old=students;
-    setStudents(v=>v.map(x=>x.id===s.id?{...x,status:resolution==='excused'?'Excused':'Kept enrolled'}:x));
-    if(!isDemo(s)) startTransition(async()=>{
-      try { await resolveAttendanceReview(s.enrolmentId!,resolution); }
-      catch { setStudents(old); alert('The review could not be saved.'); }
-    });
-  };
-  return <>
-    <div className="notice"><strong>{students.filter(s=>s.status==='Review required').length} students require attendance review</strong>The system flags three consecutive unexcused absences. Suspension remains an administrator decision.</div>
-    <div className="filters"><button className="filter active">Review required</button><button className="filter">2 missed — warning</button><button className="filter">Suspended</button><button className="filter">Resolved</button></div>
-    <div className="table-wrap"><table><thead><tr><th>Student</th><th>Class</th><th>Absences</th><th>Attendance</th><th>Last attended</th><th>Status</th><th>Actions</th></tr></thead><tbody>{students.map(s=><tr key={`${s.id}-${s.enrolmentId ?? s.className}`}><td><strong>{s.name}</strong><br/><span className="small">{s.id}</span></td><td>{s.className}</td><td><span className="badge red">{s.missed} consecutive</span></td><td>{s.attendance}</td><td>{s.lastAttended}</td><td><span className={`badge ${s.status==='Suspended'?'red':s.status==='Review required'?'amber':'green'}`}>{s.status}</span></td><td><div className="actions"><button disabled={pending||s.status!=='Review required'} className="btn btn-danger" onClick={()=>setSelected(s)}>Suspend</button><button disabled={pending} className="btn btn-secondary" onClick={()=>resolve(s,'excused')}>Excuse</button><button disabled={pending} className="btn btn-outline" onClick={()=>resolve(s,'kept_enrolled')}>Keep enrolled</button></div></td></tr>)}</tbody></table></div>
-    {selected && <div className="modal-backdrop" onClick={()=>setSelected(null)}><div className="modal" onClick={e=>e.stopPropagation()}><h3>Suspend {selected.name}?</h3><p className="subtitle">This suspends the enrolment in <strong>{selected.className}</strong>, not the student’s whole account.</p><div className="field" style={{marginTop:18}}><label>Reason</label><select value={reason} onChange={e=>setReason(e.target.value)}><option>Three consecutive unexcused absences</option><option>Behaviour</option><option>Non-payment</option><option>Administrative</option><option>Other</option></select></div><div className="field"><label>Admin note</label><textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Optional internal note"/></div><div className="field"><label><input type="checkbox" checked={notify} onChange={e=>setNotify(e.target.checked)}/> Notify student of suspension</label></div><div className="modal-footer"><button className="btn btn-outline" onClick={()=>setSelected(null)}>Cancel</button><button disabled={pending} className="btn btn-danger" onClick={suspend}>Confirm suspension</button></div></div></div>}
-  </>;
-}
+import { useMemo,useState,useTransition } from 'react';import { useRouter } from 'next/navigation';import { resolveAttendanceReview,suspendEnrolment,reinstateEnrolment } from '../actions/attendance-actions';
+export type AttendanceReviewRow={id:string;name:string;contact:string;className:string;missed:number;threshold:number;state:string;reason?:string};
+export default function ReviewClient({rows}:{rows:AttendanceReviewRow[]}){const router=useRouter();const [filter,setFilter]=useState('review_required');const [selected,setSelected]=useState<AttendanceReviewRow|null>(null);const [note,setNote]=useState('');const [pending,startTransition]=useTransition();const counts=useMemo(()=>rows.reduce((a:any,r)=>{a[r.state]=(a[r.state]??0)+1;return a},{}),[rows]);const visible=filter==='all'?rows:rows.filter(r=>r.state===filter);const run=(fn:()=>Promise<void>)=>startTransition(async()=>{try{await fn();setSelected(null);setNote('');router.refresh()}catch(e){alert(e instanceof Error?e.message:'Action failed.')}});return <><div className="notice"><strong>{counts.review_required??0} students require review</strong>Students are flagged automatically at the class absence threshold. Suspension remains an administrator decision.</div><div className="filters">{[['review_required','Review required'],['warning','Warning'],['suspended','Suspended'],['all','All']].map(([k,l])=><button key={k} className={`filter ${filter===k?'active':''}`} onClick={()=>setFilter(k)}>{l} ({k==='all'?rows.length:counts[k]??0})</button>)}</div><div className="table-wrap"><table><thead><tr><th>Student</th><th>Class</th><th>Misses</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.length===0?<tr><td colSpan={5}><span className="small">No students in this view.</span></td></tr>:visible.map(r=><tr key={`${r.state}-${r.id}`}><td><strong>{r.name}</strong><br/><span className="small">{r.contact}</span></td><td>{r.className}</td><td>{r.state==='suspended'?'—':`${r.missed} / ${r.threshold}`}</td><td><span className={`badge ${r.state==='review_required'?'amber':r.state==='warning'?'blue':'red'}`}>{r.state==='review_required'?'Review required':r.state==='warning'?'Warning':'Suspended'}</span></td><td><div className="actions">{r.state==='review_required'&&<><button className="btn btn-danger" onClick={()=>setSelected(r)}>Suspend</button><button className="btn btn-secondary" disabled={pending} onClick={()=>run(()=>resolveAttendanceReview(r.id,'excused','Latest absence excused'))}>Excuse latest</button><button className="btn btn-outline" disabled={pending} onClick={()=>run(()=>resolveAttendanceReview(r.id,'kept_enrolled','Kept enrolled after review'))}>Keep enrolled</button></>}{r.state==='suspended'&&<button className="btn btn-primary" disabled={pending} onClick={()=>run(()=>reinstateEnrolment(r.id,'Reinstated from attendance review'))}>Reinstate</button>}</div></td></tr>)}</tbody></table></div>{selected&&<div className="modal-backdrop"><div className="modal"><h3>Suspend {selected.name}?</h3><p className="subtitle">This suspends only the enrolment in <strong>{selected.className}</strong>.</p><div className="field" style={{marginTop:16}}><label>Admin note</label><textarea value={note} onChange={e=>setNote(e.target.value)}/></div><div className="modal-footer"><button className="btn btn-outline" onClick={()=>setSelected(null)}>Cancel</button><button className="btn btn-danger" disabled={pending} onClick={()=>run(()=>suspendEnrolment(selected.id,'Three consecutive unexcused absences',note,true))}>Confirm suspension</button></div></div></div>}</>}

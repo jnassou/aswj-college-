@@ -1,7 +1,9 @@
-import ReviewClient from './ReviewClient';
-import { getAttendanceReviews } from '../../../lib/live-data';
-
+import { requireAdmin } from '../../../lib/supabase/server';
+import ReviewClient,{AttendanceReviewRow} from './ReviewClient';
 export default async function AttendanceReviewPage(){
-  const rows = await getAttendanceReviews();
-  return <><div className="topbar"><div><h1>Attendance Review</h1><p className="subtitle">Three consecutive missed classes and suspension workflow.</p></div></div><ReviewClient initialStudents={rows}/></>;
+ const {supabase}=await requireAdmin();const {data:s,error}=await supabase.from('student_attendance_streaks').select('enrolment_id,student_id,class_id,consecutive_absences,absence_threshold,review_state').in('review_state',['warning','review_required']).order('consecutive_absences',{ascending:false});if(error)throw error;
+ const ids=(s??[]).map((r:any)=>r.enrolment_id);const {data:e,error:ee}=ids.length?await supabase.from('enrolments').select('id,profiles!enrolments_student_id_fkey(first_name,last_name,email,mobile),classes!enrolments_class_id_fkey(name,term)').in('id',ids):{data:[],error:null};if(ee)throw ee;const m=new Map((e??[]).map((x:any)=>[x.id,x]));
+ const rows:AttendanceReviewRow[]=(s??[]).map((r:any)=>{const x:any=m.get(r.enrolment_id);return{id:r.enrolment_id,name:`${x?.profiles?.first_name??''} ${x?.profiles?.last_name??''}`.trim()||'Student',contact:x?.profiles?.email||x?.profiles?.mobile||'',className:[x?.classes?.name,x?.classes?.term].filter(Boolean).join(' — ')||'Class',missed:Number(r.consecutive_absences),threshold:Number(r.absence_threshold),state:r.review_state}});
+ const {data:sus}=await supabase.from('enrolments').select('id,suspension_reason,profiles!enrolments_student_id_fkey(first_name,last_name,email,mobile),classes!enrolments_class_id_fkey(name,term)').eq('status','suspended');for(const x of sus??[]){const a:any=x;rows.push({id:a.id,name:`${a.profiles?.first_name??''} ${a.profiles?.last_name??''}`.trim()||'Student',contact:a.profiles?.email||a.profiles?.mobile||'',className:[a.classes?.name,a.classes?.term].filter(Boolean).join(' — ')||'Class',missed:0,threshold:3,state:'suspended',reason:a.suspension_reason??''})}
+ return <><div className="topbar"><div><h1>Attendance Review</h1><p className="subtitle">Warnings, three-miss reviews and suspensions.</p></div></div><ReviewClient rows={rows}/></>;
 }
