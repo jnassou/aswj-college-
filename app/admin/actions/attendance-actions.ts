@@ -48,6 +48,8 @@ export async function suspendEnrolment(enrolmentId: string, reason: string, note
 
   revalidatePath('/admin');
   revalidatePath('/admin/attendance-review');
+  revalidatePath('/admin/students');
+  revalidatePath('/student');
 }
 
 export async function resolveAttendanceReview(enrolmentId: string, resolution: 'excused' | 'kept_enrolled', note?: string) {
@@ -83,7 +85,9 @@ export async function reinstateEnrolment(enrolmentId: string, note?: string) {
   if (readError || !enrolment) throw new Error('Enrolment not found.');
 
   const { error } = await supabase.from('enrolments').update({
-    status: 'enrolled', reinstated_at: now, reinstated_by: user.id,
+    status: 'enrolled',
+    reinstated_at: now,
+    reinstated_by: user.id,
   }).eq('id', enrolmentId);
   if (error) throw error;
 
@@ -95,5 +99,9 @@ export async function reinstateEnrolment(enrolmentId: string, note?: string) {
     old_values: { status: enrolment.status },
     new_values: { status: 'enrolled', note: note || null },
   });
+
+  revalidatePath('/admin');
   revalidatePath('/admin/attendance-review');
+  revalidatePath('/admin/students');
+  revalidatePath('/student');
 }
