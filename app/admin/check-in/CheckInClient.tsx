@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { checkInByQr, closeTodayRoll, setManualAttendance } from '../actions/checkin-actions';
+import { formatClassTime } from '../../../lib/class-time';
 
 export type CheckInStudent = {
   enrolmentId: string;
@@ -176,7 +177,7 @@ export default function CheckInClient({ classes, today }: { classes: CheckInClas
             {selected && (
               <div className="small" style={{ paddingTop: 24 }}>
                 {selected.location || 'No location set'}
-                {selected.startTime && ` · ${selected.startTime}${selected.endTime ? `–${selected.endTime}` : ''}`}
+                {selected.startTime && ` · ${formatClassTime(selected.startTime)}${selected.endTime ? `–${formatClassTime(selected.endTime)}` : ''}`}
                 {' · '}{selected.students.filter((s) => s.attendanceStatus === 'present' || s.attendanceStatus === 'late').length}/{selected.students.filter((s) => s.enrolmentStatus === 'enrolled').length} checked in
               </div>
             )}

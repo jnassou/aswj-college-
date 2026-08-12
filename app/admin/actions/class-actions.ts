@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '../../../lib/supabase/server';
+import { classTimeMinutes, normalizeClassTime } from '../../../lib/class-time';
 
 function optionalText(value: FormDataEntryValue | null) {
   const text = String(value ?? '').trim();
@@ -20,15 +21,22 @@ function readPayload(formData: FormData) {
   const capacity = Number.parseInt(String(formData.get('capacity') ?? ''), 10);
   const absenceThreshold = Number.parseInt(String(formData.get('absence_threshold') ?? '3'), 10);
   const dayOfWeek = optionalInt(formData.get('day_of_week'));
-  const startTime = optionalText(formData.get('start_time'));
-  const endTime = optionalText(formData.get('end_time'));
+  const startTime = normalizeClassTime(formData.get('start_time'), 'Start time');
+  const endTime = normalizeClassTime(formData.get('end_time'), 'End time');
 
   if (!name) throw new Error('Class name is required.');
   if (!Number.isFinite(capacity) || capacity < 1) throw new Error('Capacity must be at least 1.');
   if (!Number.isFinite(absenceThreshold) || absenceThreshold < 1) {
     throw new Error('Absence threshold must be at least 1.');
   }
-  if (startTime && endTime && endTime <= startTime) {
+  if ((startTime && !endTime) || (!startTime && endTime)) {
+    throw new Error('Choose both a start time and an end time.');
+  }
+  if (
+    startTime &&
+    endTime &&
+    classTimeMinutes(endTime) <= classTimeMinutes(startTime)
+  ) {
     throw new Error('End time must be after start time.');
   }
 

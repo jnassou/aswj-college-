@@ -14,6 +14,7 @@ import {
   PortalEnrolment,
   PortalNotification,
 } from './portal-data';
+import { formatClassTime } from '../../lib/class-time';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -44,7 +45,7 @@ function className(name: string, term: string | null) {
 function schedule(enrolment: PortalEnrolment) {
   const { dayOfWeek, startTime, endTime, location } = enrolment.classInfo;
   const time = startTime
-    ? `${String(startTime).slice(0, 5)}${endTime ? `–${String(endTime).slice(0, 5)}` : ''}`
+    ? `${formatClassTime(startTime)}${endTime ? `–${formatClassTime(endTime)}` : ''}`
     : null;
   return [dayOfWeek === null ? null : DAYS[dayOfWeek], time, location]
     .filter(Boolean)

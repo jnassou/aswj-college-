@@ -3,6 +3,12 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClass, setClassActive, updateClass } from '../actions/class-actions';
+import {
+  CLASS_TIME_OPTIONS,
+  DEFAULT_CLASS_END_TIME,
+  DEFAULT_CLASS_START_TIME,
+  formatClassTime,
+} from '../../../lib/class-time';
 
 export type ClassRow = {
   id: string;
@@ -40,9 +46,23 @@ function scheduleLabel(row: ClassRow) {
   const parts: string[] = [];
   if (row.day_of_week !== null) parts.push(DAYS[row.day_of_week]);
   if (row.start_time) {
-    parts.push(shortTime(row.start_time) + (row.end_time ? `–${shortTime(row.end_time)}` : ''));
+    parts.push(
+      formatClassTime(row.start_time) +
+      (row.end_time ? `–${formatClassTime(row.end_time)}` : '')
+    );
   }
   return parts.length ? parts.join(' ') : 'Not set';
+}
+
+function timeOptions(currentValue: string) {
+  if (!currentValue || CLASS_TIME_OPTIONS.some((option) => option.value === currentValue)) {
+    return CLASS_TIME_OPTIONS;
+  }
+
+  return [
+    ...CLASS_TIME_OPTIONS,
+    { value: currentValue, label: formatClassTime(currentValue) },
+  ].sort((a, b) => a.value.localeCompare(b.value));
 }
 
 function localDateTime(value: string | null) {
@@ -71,6 +91,12 @@ export default function ClassesClient({
     () => rows.filter((row) => showArchived || row.active),
     [rows, showArchived]
   );
+  const startTimeValue = selected
+    ? shortTime(selected.start_time)
+    : DEFAULT_CLASS_START_TIME;
+  const endTimeValue = selected
+    ? shortTime(selected.end_time)
+    : DEFAULT_CLASS_END_TIME;
 
   const closeModal = () => {
     if (pending) return;
@@ -224,11 +250,21 @@ export default function ClassesClient({
               <div className="form-row">
                 <div className="field">
                   <label>Start time</label>
-                  <input name="start_time" type="time" defaultValue={shortTime(selected?.start_time ?? null)} />
+                  <select name="start_time" defaultValue={startTimeValue}>
+                    <option value="">Not set</option>
+                    {timeOptions(startTimeValue).map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="field">
                   <label>End time</label>
-                  <input name="end_time" type="time" defaultValue={shortTime(selected?.end_time ?? null)} />
+                  <select name="end_time" defaultValue={endTimeValue}>
+                    <option value="">Not set</option>
+                    {timeOptions(endTimeValue).map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
