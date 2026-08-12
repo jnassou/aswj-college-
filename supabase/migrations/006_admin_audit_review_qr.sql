@@ -1,13 +1,18 @@
 alter table public.audit_log enable row level security;
 grant insert on public.audit_log to authenticated;
 create policy audit_log_admin_insert on public.audit_log for insert to authenticated
-with check (public.is_admin() and actor_id=(select auth.uid()));
+with check (
+  coalesce((select auth.jwt()->'app_metadata'->>'role'), '') in ('admin','super_admin')
+  and actor_id=(select auth.uid())
+);
 
 create or replace function public.open_required_suspension_reviews()
 returns integer language plpgsql security invoker set search_path=public as $$
 declare inserted_count integer;
 begin
-  if not public.is_admin() then raise exception 'Administrator access required'; end if;
+  if coalesce(auth.jwt()->'app_metadata'->>'role', '') not in ('admin','super_admin') then
+    raise exception 'Administrator access required';
+  end if;
   insert into public.suspension_reviews(enrolment_id,consecutive_absences)
   select v.enrolment_id,v.consecutive_absences from public.students_requiring_attendance_review v
   where not exists(select 1 from public.suspension_reviews sr where sr.enrolment_id=v.enrolment_id and sr.status='open');
@@ -20,7 +25,8 @@ grant execute on function public.open_required_suspension_reviews() to authentic
 create or replace function public.prevent_unauthorized_profile_role_change()
 returns trigger language plpgsql security invoker set search_path=public as $$
 begin
-  if new.role is distinct from old.role and not public.is_admin() then
+  if new.role is distinct from old.role
+     and coalesce(auth.jwt()->'app_metadata'->>'role', '') not in ('admin','super_admin') then
     raise exception 'Only an administrator may change a profile role';
   end if;
   return new;

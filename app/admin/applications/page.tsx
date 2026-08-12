@@ -14,7 +14,6 @@ export default async function ApplicationsPage() {
       external_response_id,
       submitted_at,
       reviewed_at,
-      admin_notes,
       profiles!applications_student_id_fkey(
         id,
         first_name,
@@ -37,6 +36,21 @@ export default async function ApplicationsPage() {
     .limit(500);
 
   if (error) throw error;
+
+  const applicationIds = (data ?? []).map((row: any) => row.id);
+  const noteResult = applicationIds.length
+    ? await supabase.rpc('get_application_admin_notes', {
+        p_application_ids: applicationIds,
+      })
+    : { data: [], error: null };
+
+  if (noteResult.error) throw noteResult.error;
+  const notes = new Map<string, string>(
+    (noteResult.data ?? []).map((row: any): [string, string] => [
+      String(row.application_id),
+      String(row.admin_notes ?? ''),
+    ])
+  );
 
   const classIds = Array.from(new Set((data ?? []).map((row:any) => row.classes?.id).filter(Boolean)));
   const counts = new Map<string, number>();
@@ -76,7 +90,7 @@ export default async function ApplicationsPage() {
     externalResponseId: row.external_response_id ?? '',
     submittedAt: row.submitted_at,
     reviewedAt: row.reviewed_at,
-    adminNotes: row.admin_notes ?? '',
+    adminNotes: notes.get(row.id) ?? '',
   }));
 
   return (

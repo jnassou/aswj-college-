@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { checkInByQr, setManualAttendance } from '../actions/checkin-actions';
+import { checkInByQr, closeTodayRoll, setManualAttendance } from '../actions/checkin-actions';
 
 export type CheckInStudent = {
   enrolmentId: string;
@@ -132,6 +132,28 @@ export default function CheckInClient({ classes, today }: { classes: CheckInClas
     });
   };
 
+  const closeRoll = () => {
+    if (!selected || !window.confirm(
+      'Close today’s roll? Every active student who is still unmarked will be recorded as an unexcused absence.'
+    )) return;
+
+    setError('');
+    setMessage('');
+    startTransition(async () => {
+      try {
+        const result = await closeTodayRoll(selected.id);
+        setMessage(
+          result.markedAbsent === 1
+            ? 'Roll closed. 1 student was marked absent.'
+            : `Roll closed. ${result.markedAbsent} students were marked absent.`
+        );
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'The roll could not be closed.');
+      }
+    });
+  };
+
   return (
     <>
       <div className="topbar">
@@ -196,6 +218,11 @@ export default function CheckInClient({ classes, today }: { classes: CheckInClas
         <section className="section">
           <div className="section-head">
             <div><h2>Today’s roll</h2><div className="small">{selected.name}</div></div>
+            {!selected.sessionCancelled && (
+              <button className="btn btn-outline" disabled={pending} onClick={closeRoll}>
+                Close roll
+              </button>
+            )}
           </div>
           <div className="table-wrap">
             <table>

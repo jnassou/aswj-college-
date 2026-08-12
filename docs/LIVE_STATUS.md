@@ -1,4 +1,4 @@
-# ASWJ College live status — v0.5
+# ASWJ College live status — v0.6
 
 Supabase project is connected and the production schema is deployed.
 
@@ -15,10 +15,18 @@ Supabase project is connected and the production schema is deployed.
 - Random student QR identity tokens
 - RLS-based admin/student access controls
 - Automatic profile + QR creation on Supabase Auth signup
+- Student application and enrolment status views
+- Per-class attendance history and consecutive-absence standing
+- Portal notification feed with student-scoped read acknowledgement
+- Automatic warning/review notifications with 14-day duplicate suppression
+- Sydney-local attendance calculations based on recorded roll outcomes and bounded by enrolment/reinstatement dates
+- Atomic application, suspension, review, reinstatement and check-in workflows
+- Internal application notes exposed only through an administrator-authorised database function
 
 ## First admin bootstrap
-The live Auth database currently has no users. Create the first account through `/login?mode=signup`.
-After the user confirms the account, promote that exact Auth user to `super_admin` using a trusted server/admin operation. Do not expose an open "claim admin" endpoint.
+Create an account through `/login?mode=signup`. After the user confirms the account,
+promote that exact Auth user to `super_admin` using a trusted server/admin operation.
+Do not expose an open "claim admin" endpoint.
 
 ## Environment
 `.env.local` contains only the Supabase project URL and publishable browser key. Server/secret keys are deliberately not included.

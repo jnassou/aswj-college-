@@ -1,33 +1,35 @@
-# ASWJ College App v0.5
+# ASWJ College application — v0.6
 
-# ASWJ College application — v0.4
+Two connected interfaces support the college registration and attendance workflow:
 
-Two connected interfaces are being built:
+- **ASWJ College Admin** — applications, classes, waitlists, attendance, QR check-in, consecutive-absence reviews, suspension/reinstatement, notifications and audit history.
+- **ASWJ College Student Portal** — application outcomes, per-class enrolment and attendance status, warnings, notifications and QR identity.
 
-- **ASWJ College Admin** — applications, classes, waitlists, attendance, QR check-in, three-absence reviews, suspension/reinstatement, notifications and audit history.
-- **ASWJ College Student Portal** — registration status, classes, QR identity, attendance, warnings and notifications.
+## v0.6 changes
 
-## v0.4 changes
+- Student application timeline with pending, accepted, waitlisted, declined and withdrawn states.
+- Per-class attendance totals, recent session history and configurable absence warnings.
+- Student notification inbox with secure read/unread acknowledgement.
+- Portal notices for application decisions, warnings, reviews, suspension, excused attendance and reinstatement.
+- Sydney-local recorded attendance bounded by enrolment/reinstatement dates, so open rolls and inactive periods do not create false absences.
+- Valid automatic review closure after attendance corrections.
+- Atomic application, attendance-review and check-in workflows with audit and notification writes in the same transaction.
+- Admin review notes protected from student Data API access.
+- Preserved enrolment and attendance history when an accepted application outcome changes.
+- Restored audit events for QR check-in, manual attendance and roll closure.
+- Next.js 16.3.0 with an npm lockfile and production TypeScript configuration.
 
-- Supabase-backed application list and attendance-review loaders.
-- Real Accept / Waitlist / Decline Server Actions when Supabase is configured.
-- Real Suspend / Excuse / Keep Enrolled actions when Supabase is configured.
-- Admin login using Supabase Auth.
-- Next.js 16 `proxy.ts` session refresh path.
-- RLS hardening migration using `app_metadata.role` for authorization.
-- Attendance review view changed to `security_invoker`.
-- Privileged review-generation function removed from public RPC access.
-- Microsoft Forms ingestion remains server-only through the service-role key and a shared integration secret.
-- Demo fallback remains available when Supabase environment variables are absent.
+## Local development
 
-## Quick local preview
+```bash
+npm install
+npm run dev
+```
 
-Open `preview.html` directly in a browser to inspect the interface without installing packages.
+Run `npm run build` for the production compile and route check.
+
+`preview.html` remains available as a static interface reference. Live application and portal workflows require the Supabase values described in `.env.example`.
 
 ## Live setup
 
-See `docs/SUPABASE_SETUP.md` and `docs/MICROSOFT_FORMS_INTEGRATION.md`.
-
-
-## Live connection
-This package is configured with the project URL and publishable key in `.env.local`. See `docs/LIVE_STATUS.md`.
+See `docs/SUPABASE_SETUP.md`, `docs/LIVE_STATUS.md` and `docs/MICROSOFT_FORMS_INTEGRATION.md`.

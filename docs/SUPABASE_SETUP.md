@@ -2,7 +2,7 @@
 
 1. Copy `.env.example` to `.env.local` and fill in the project URL and publishable key.
 2. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only. Never expose it in browser code or a `NEXT_PUBLIC_*` variable.
-3. In Supabase SQL Editor, apply migrations in order: `001_initial_schema.sql`, `002_integrations_and_review_workflow.sql`, then `003_security_and_live_admin.sql`.
+3. Apply every SQL file in `supabase/migrations` in filename order. Do not skip the later notification, attendance and security migrations.
 4. Create the first administrator in Supabase Auth.
 5. Set that Auth user's `app_metadata.role` to `super_admin`. Do not use `user_metadata` for roles.
 6. Insert/update the matching `profiles` row using the same Auth user UUID.
