@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '../../lib/supabase/server';
 import { logout } from '../login/actions';
@@ -44,10 +45,15 @@ export default async function StudentPortal() {
 
   return <main className="student-portal">
     <div className="student-header">
-      <div className="small" style={{color:'#dce9e1'}}>ASWJ College Student Portal</div>
-      <h1 style={{margin:'6px 0'}}>Assalamu alaikum, {name}</h1>
-      <p style={{margin:0,opacity:.8}}>{user.email}</p>
-      <form action={logout} style={{marginTop:16}}><button className="btn" type="submit">Sign out</button></form>
+      <div className="student-brand-row">
+        <Image className="student-logo" src="/aswj-logo.png" alt="ASWJ Islamic College" width={360} height={225} priority />
+        <div>
+          <div className="small" style={{color:'#fff',opacity:.9}}>ASWJ College Student Portal</div>
+          <h1 style={{margin:'6px 0'}}>Assalamu alaikum, {name}</h1>
+          <p style={{margin:0,opacity:.85}}>{user.email}</p>
+        </div>
+      </div>
+      <form action={logout}><button className="btn" type="submit">Sign out</button></form>
     </div>
 
     <div className="portal-grid">

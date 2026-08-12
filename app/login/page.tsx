@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { login, signup } from './actions';
 
 export default async function LoginPage({
@@ -16,9 +17,9 @@ export default async function LoginPage({
   else if (params.error) message = 'Please check the details and try again.';
 
   return (
-    <main style={{ maxWidth: 500, margin: '64px auto', padding: '0 20px' }}>
-      <section className="section">
-        <div className="small">ASWJ College</div>
+    <main className="login-shell">
+      <section className="login-card">
+        <Image className="login-logo" src="/aswj-logo.png" alt="ASWJ Islamic College" width={650} height={390} priority />
         <h1>{signupMode ? 'Create Student Account' : 'Sign in'}</h1>
         <p className="subtitle">
           {signupMode ? 'ASWJ College Student Portal' : 'ASWJ College Admin & Student Portal'}

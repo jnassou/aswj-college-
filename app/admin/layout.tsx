@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '../../lib/supabase/server';
 import { logout } from '../login/actions';
@@ -21,8 +22,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand">ASWJ College</div>
-        <div className="brand-sub">Admin</div>
+        <Image className="brand-logo" src="/aswj-logo.png" alt="ASWJ Islamic College" width={420} height={260} priority />
+        <div className="brand-sub">College Admin</div>
         <nav className="nav">{links.map(([href,label]) => <a key={href} href={href}>{label}</a>)}</nav>
         <form action={logout} style={{ marginTop: 28 }}><button className="btn" type="submit">Sign out</button></form>
       </aside>
