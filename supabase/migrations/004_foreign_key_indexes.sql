@@ -1,0 +1,13 @@
+create index applications_reviewed_by_idx on public.applications(reviewed_by);
+create index attendance_recorded_by_idx on public.attendance(recorded_by);
+create index attendance_session_idx on public.attendance(session_id);
+create index audit_log_actor_idx on public.audit_log(actor_id);
+create index classes_teacher_idx on public.classes(teacher_id);
+create index enrolments_application_idx on public.enrolments(application_id);
+create index enrolments_reinstated_by_idx on public.enrolments(reinstated_by);
+create index enrolments_suspended_by_idx on public.enrolments(suspended_by);
+create index notifications_enrolment_idx on public.notifications(enrolment_id);
+create index notifications_student_idx on public.notifications(student_id);
+create index student_qr_tokens_student_idx on public.student_qr_tokens(student_id);
+create index suspension_reviews_enrolment_idx on public.suspension_reviews(enrolment_id);
+create index suspension_reviews_reviewed_by_idx on public.suspension_reviews(reviewed_by);
