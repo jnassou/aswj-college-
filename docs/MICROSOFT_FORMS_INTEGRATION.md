@@ -1,33 +1,106 @@
-# Microsoft Forms → ASWJ College integration
+# Microsoft Forms → ASWJ College registration
 
-The existing Microsoft Form can stay live during the migration.
+The existing Microsoft Form remains the registration source. Power Automate sends each completed response to the application, which stores the original JSON once and then attempts a safe match.
+
+## Processing rules
+
+- The endpoint requires the server-only `MS_FORMS_INGEST_SECRET` in the `x-aswj-forms-secret` header.
+- The complete JSON submission is retained in `external_form_submissions`; retries never overwrite it.
+- A response identity is unique within its provider and Form: `microsoft_forms + formId + responseId`.
+- Email matching uses the submitted **Email Address**, trimmed and lower-cased. Processing continues only when exactly one existing Student Portal profile with role `student` matches.
+- The import never creates a Supabase Auth user or a standalone profile.
+- Course matching uses only the protected exact-mapping registry. There is no fuzzy match, first-class fallback or mapping to the test class.
+- A valid match creates one `pending` application with source `microsoft_forms`. Acceptance, waitlisting, declining, enrolment and notifications continue through the existing Applications workflow.
+- The existing `(student_id, class_id)` database constraint prevents duplicate applications. A second response for the same student and class is held for administrator review and linked to the existing application.
+- Missing, invalid, unmatched or failed submissions remain available under **Admin → Forms Imports**. An administrator can link a course to a real class and reprocess it.
+- Guardian, wellbeing, medical, learning, allergy and previous-study details stay in the protected intake record. They are loaded into the browser only when an authenticated administrator opens one submission for review.
+
+## Confirmed workbook fields
+
+The parser uses these confirmed Microsoft Forms workbook labels:
+
+- `Id` (also accepts canonical `responseId` / `Response Id`)
+- `Start time`
+- `Completion time`
+- `Email`
+- `Name`
+- `Language`
+- `Student First Name`
+- `Student Last Name`
+- `Date of Birth`
+- `Select Course`
+- `Guardian Full Name (For Kids Class Only)`
+- `Guardian Phone Number (For Kids Class Only)`
+- `List medical conditions, learning considerations or allergies that could impact the students well being.`
+- `Email Address`
+- `Phone Number (Will be added to Whatsapp Group)`
+- `Any Previous Studies (Please list)`
+
+Guardian and wellbeing answers may be blank when they do not apply. First name, last name, DOB, email, phone, course and completion time are required for automatic processing.
+
+## Exact supported course labels
+
+These labels are pre-registered with no class assigned:
+
+- `Brothers Shariah Level 1 Wednesday Evening`
+- `Brothers Shariah Level 3 Wednesday Evening`
+- `Sisters Shariah Level 1 Thursday Morning`
+- `Sisters Shariah Level 2 Thursday Morning`
+- `Sisters Shariah Level 3 Wednesday Evening`
+
+The parenthesised workbook variants, such as `Brothers Shariah Level 1 (Wednesday Evening)`, are canonicalised to the corresponding label above. These migrations do not create class rows because capacity, term dates, teachers and locations have not been confirmed. Create each real class with its known settings in **Admin → Classes**, then link it under **Admin → Forms Imports**.
 
 ## Power Automate flow
+
 1. Trigger: Microsoft Forms — **When a new response is submitted**.
 2. Action: Microsoft Forms — **Get response details**.
-3. Action: HTTP POST to `https://YOUR_APP_DOMAIN/api/integrations/microsoft-forms`.
-4. Add request header `x-aswj-forms-secret` with the same secret stored as `MS_FORMS_INGEST_SECRET` in the app.
-5. Send a JSON body containing at minimum:
-   - `formId`
-   - `responseId`
-   - the response fields returned by **Get response details**
-
-Example body shape (field names will be mapped after the current form questions are exported/reviewed):
+3. Action: HTTP — `POST https://aswj-college.vercel.app/api/integrations/microsoft-forms`.
+4. Headers:
+   - `Content-Type: application/json`
+   - `x-aswj-forms-secret: <same value as MS_FORMS_INGEST_SECRET>`
+5. Enable **Secure Inputs** and **Secure Outputs** on the HTTP action so the secret and sensitive registration answers are hidden from normal run-history views.
+6. Send the Form ID and response ID at the top level, and place the confirmed labels under `answers` exactly as shown below.
 
 ```json
 {
-  "formId": "your-form-id",
-  "responseId": "@{triggerOutputs()?['body/resourceData/responseId']}",
+  "formId": "FORM_ID_FROM_THE_TRIGGER",
+  "responseId": "RESPONSE_ID_FROM_THE_TRIGGER",
   "answers": {
-    "firstName": "...",
-    "lastName": "...",
-    "email": "...",
-    "mobile": "..."
+    "Start time": "2026-08-13T08:55:00.000Z",
+    "Completion time": "2026-08-13T09:00:00.000Z",
+    "Email": "respondent@example.com",
+    "Name": "Respondent Name",
+    "Language": "en-AU",
+    "Student First Name": "Student",
+    "Student Last Name": "Name",
+    "Date of Birth": "2000-01-31",
+    "Select Course": "Brothers Shariah Level 1 (Wednesday Evening)",
+    "Guardian Full Name (For Kids Class Only)": "",
+    "Guardian Phone Number (For Kids Class Only)": "",
+    "List medical conditions, learning considerations or allergies that could impact the students well being.": "",
+    "Email Address": "student@example.com",
+    "Phone Number (Will be added to Whatsapp Group)": "0400000000",
+    "Any Previous Studies (Please list)": ""
   }
 }
 ```
 
-The endpoint first stores the complete payload in `external_form_submissions`. It does **not** blindly create a student record. This prevents an incorrect field mapping from corrupting the student database.
+Use Power Automate date-format expressions so:
 
-## Next mapping step
-Export one sample response or the form question list. Then map those fields to `profiles` + `applications` and mark each intake row `processed` or `needs_review`.
+- `Date of Birth` is sent as `yyyy-MM-dd`.
+- `Completion time` (and `Start time`, when included) is sent as ISO 8601 with a timezone, such as `2026-08-13T09:00:00.000Z`.
+
+Do not send locale-only dates such as `13/08/2026`; the integration deliberately refuses to guess ambiguous dates or timezones.
+
+## Deployment sequence
+
+1. Apply every pending Supabase migration in filename order.
+2. Add `SUPABASE_SERVICE_ROLE_KEY`, `MS_FORMS_INGEST_SECRET` and preferably `MS_FORMS_FORM_ID` to the Vercel Production environment. None may use a `NEXT_PUBLIC_` prefix.
+3. Redeploy the application so the server receives those environment variables.
+4. Create the real class records with confirmed operational details and link each exact Forms course under **Admin → Forms Imports**.
+5. Keep the Power Automate flow disabled while configuring it.
+6. Submit one controlled response and confirm one immutable intake record and, when profile and course mapping match, one pending application.
+7. Replay the same response ID. Confirm the original receipt time/payload remain unchanged and no second application is created.
+8. Enable the flow for live registrations.
+
+The endpoint returns `201` for an automatically created pending application, `202` when the safely stored response needs review, and `200` for an idempotent retry.

@@ -6,6 +6,7 @@ import { logout } from '../login/actions';
 const links = [
   ['/admin', 'Dashboard'],
   ['/admin/applications', 'Applications'],
+  ['/admin/forms-imports', 'Forms Imports'],
   ['/admin/attendance-review', 'Attendance Review'],
   ['/admin/students', 'Students'],
   ['/admin/classes', 'Classes'],

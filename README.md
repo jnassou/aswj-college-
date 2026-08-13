@@ -1,4 +1,4 @@
-# ASWJ College application — v0.6
+# ASWJ College application — v0.7
 
 Two connected interfaces support the college registration and attendance workflow:
 
@@ -18,6 +18,14 @@ Two connected interfaces support the college registration and attendance workflo
 - Preserved enrolment and attendance history when an accepted application outcome changes.
 - Restored audit events for QR check-in, manual attendance and roll closure.
 - Next.js 16.3.0 with an npm lockfile and production TypeScript configuration.
+
+## v0.7 changes
+
+- Immutable Microsoft Forms response intake using the confirmed workbook fields.
+- Exact, administrator-controlled mapping for the five real Shariah course labels.
+- Existing Student Portal profile matching by normalized email without fabricated Auth users.
+- Duplicate response and student/class application protection.
+- Protected Forms Imports review, course assignment and reprocessing flow.
 
 ## Local development
 
