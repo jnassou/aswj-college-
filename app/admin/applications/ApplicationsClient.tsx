@@ -1,8 +1,13 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ApplicationDecision, decideApplication } from '../actions/application-actions';
+import {
+  ApplicationDecision,
+  ApplicationRegistrationDetails,
+  decideApplication,
+  getApplicationRegistrationDetails,
+} from '../actions/application-actions';
 
 export type ApplicationAdminRow = {
   id: string;
@@ -57,9 +62,13 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('pending');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ApplicationAdminRow | null>(null);
+  const [registrationDetails, setRegistrationDetails] = useState<ApplicationRegistrationDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
   const [note, setNote] = useState('');
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState('');
+  const detailRequest = useRef(0);
 
   const counts = useMemo(() => {
     const result: Record<string, number> = { all: rows.length };
@@ -84,9 +93,36 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
   }, [rows, filter, query]);
 
   const open = (row: ApplicationAdminRow) => {
+    const request = detailRequest.current + 1;
+    detailRequest.current = request;
     setSelected(row);
     setNote(row.adminNotes);
     setError('');
+    setRegistrationDetails(null);
+    setDetailsError('');
+    setDetailsLoading(true);
+
+    void getApplicationRegistrationDetails(row.id)
+      .then((details) => {
+        if (detailRequest.current === request) setRegistrationDetails(details);
+      })
+      .catch(() => {
+        if (detailRequest.current === request) {
+          setDetailsError('Registration details could not be loaded.');
+        }
+      })
+      .finally(() => {
+        if (detailRequest.current === request) setDetailsLoading(false);
+      });
+  };
+
+  const close = () => {
+    if (pending) return;
+    detailRequest.current += 1;
+    setSelected(null);
+    setRegistrationDetails(null);
+    setDetailsLoading(false);
+    setDetailsError('');
   };
 
   const decide = (decision: ApplicationDecision) => {
@@ -175,7 +211,7 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
       </div>
 
       {selected && (
-        <div className="modal-backdrop" onMouseDown={() => !pending && setSelected(null)}>
+        <div className="modal-backdrop" onMouseDown={close}>
           <div className="modal" onMouseDown={(event) => event.stopPropagation()} style={{ width: 'min(680px,100%)', maxHeight: '92vh', overflow: 'auto' }}>
             <h3>{selected.name}</h3>
             <p className="subtitle">{selected.className}</p>
@@ -200,6 +236,33 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
               </div>
             </div>
 
+            <div className="card" style={{ marginTop: 14 }}>
+              <div className="small">Submitted registration details</div>
+              {detailsLoading ? (
+                <p>Loading protected details…</p>
+              ) : detailsError ? (
+                <p style={{ color: 'var(--danger)' }}>{detailsError}</p>
+              ) : registrationDetails ? (
+                <div className="portal-grid">
+                  <div>
+                    <p><strong>Submitted student name</strong><br/>{registrationDetails.studentFirstName} {registrationDetails.studentLastName}</p>
+                    <p><strong>Confirmed email</strong><br/>{registrationDetails.emailAddress}</p>
+                    <p><strong>Phone</strong><br/>{registrationDetails.phoneNumber}</p>
+                    <p><strong>Date of birth</strong><br/>{formatDate(registrationDetails.dateOfBirth)}</p>
+                    <p><strong>Guardian</strong><br/>{registrationDetails.guardianFullName || '—'}{registrationDetails.guardianPhoneNumber ? ` · ${registrationDetails.guardianPhoneNumber}` : ''}</p>
+                    <p><strong>WhatsApp consent</strong><br/>{registrationDetails.whatsappOptIn ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <p><strong>Medical, learning or allergy notes</strong><br/><span style={{ whiteSpace: 'pre-wrap' }}>{registrationDetails.medicalLearningAllergyNotes || '—'}</span></p>
+                    <p><strong>Previous studies</strong><br/><span style={{ whiteSpace: 'pre-wrap' }}>{registrationDetails.previousStudies || '—'}</span></p>
+                    <p className="small">Privacy notice {registrationDetails.privacyNoticeVersion} accepted {formatDate(registrationDetails.consentedAt)}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="small">No native registration snapshot is attached to this application.</p>
+              )}
+            </div>
+
             <div className="field" style={{ marginTop: 18 }}>
               <label>Admin notes</label>
               <textarea
@@ -210,7 +273,7 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
             </div>
 
             <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-              <button className="btn btn-outline" disabled={pending} onClick={() => setSelected(null)}>Close</button>
+              <button className="btn btn-outline" disabled={pending} onClick={close}>Close</button>
               <div className="actions">
                 <button className="btn btn-outline" disabled={pending} onClick={() => decide('declined')}>Decline</button>
                 <button className="btn btn-secondary" disabled={pending} onClick={() => decide('waitlisted')}>Waitlist</button>

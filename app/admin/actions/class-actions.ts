@@ -47,6 +47,7 @@ function readPayload(formData: FormData) {
     location: optionalText(formData.get('location')),
     capacity,
     absence_threshold: absenceThreshold,
+    registration_enabled: formData.get('registration_enabled') === 'on',
     registration_opens_at: optionalText(formData.get('registration_opens_at')),
     registration_closes_at: optionalText(formData.get('registration_closes_at')),
     starts_on: optionalText(formData.get('starts_on')),

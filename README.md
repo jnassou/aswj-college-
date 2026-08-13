@@ -1,9 +1,28 @@
-# ASWJ College application — v0.7
+# ASWJ College application — v0.8
 
 Two connected interfaces support the college registration and attendance workflow:
 
 - **ASWJ College Admin** — applications, classes, waitlists, attendance, QR check-in, consecutive-absence reviews, suspension/reinstatement, notifications and audit history.
 - **ASWJ College Student Portal** — application outcomes, per-class enrolment and attendance status, warnings, notifications and QR identity.
+
+## v0.8 changes
+
+- Native, account-based class application form at `/student/apply`.
+- Public `/apply` entry point for student sign-in or account creation.
+- Exact five-course selection backed by administrator-controlled real-class mappings.
+- Explicit per-class Portal application switch, defaulting off so test/internal classes are never exposed accidentally.
+- Atomic duplicate-safe submission using the authenticated student identity and confirmed Auth email.
+- Private application snapshots for guardian, wellbeing, allergy and previous-study answers, loaded only when an administrator opens one application.
+- Existing pending review, acceptance, waitlist, enrolment, notification and Student Portal workflows preserved.
+- Microsoft Forms ingestion retained only as a protected legacy fallback.
+
+## v0.7 changes
+
+- Immutable Microsoft Forms response intake using the confirmed workbook fields.
+- Exact, administrator-controlled mapping for the five real Shariah course labels.
+- Existing Student Portal profile matching by normalized email without fabricated Auth users.
+- Duplicate response and student/class application protection.
+- Protected Forms Imports review, course assignment and reprocessing flow.
 
 ## v0.6 changes
 
@@ -19,14 +38,6 @@ Two connected interfaces support the college registration and attendance workflo
 - Restored audit events for QR check-in, manual attendance and roll closure.
 - Next.js 16.3.0 with an npm lockfile and production TypeScript configuration.
 
-## v0.7 changes
-
-- Immutable Microsoft Forms response intake using the confirmed workbook fields.
-- Exact, administrator-controlled mapping for the five real Shariah course labels.
-- Existing Student Portal profile matching by normalized email without fabricated Auth users.
-- Duplicate response and student/class application protection.
-- Protected Forms Imports review, course assignment and reprocessing flow.
-
 ## Local development
 
 ```bash
@@ -40,4 +51,4 @@ Run `npm run build` for the production compile and route check.
 
 ## Live setup
 
-See `docs/SUPABASE_SETUP.md`, `docs/LIVE_STATUS.md` and `docs/MICROSOFT_FORMS_INTEGRATION.md`.
+See `docs/SUPABASE_SETUP.md`, `docs/LIVE_STATUS.md` and `docs/NATIVE_REGISTRATION.md`.

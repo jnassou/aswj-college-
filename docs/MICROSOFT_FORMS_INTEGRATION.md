@@ -1,6 +1,6 @@
-# Microsoft Forms → ASWJ College registration
+# Legacy Microsoft Forms → ASWJ College registration
 
-The existing Microsoft Form remains the registration source. Power Automate sends each completed response to the application, which stores the original JSON once and then attempts a safe match.
+The Student Portal form is the primary registration source. This server-to-server intake is retained for historical receipts, recovery, or an explicitly approved temporary fallback. Power Automate is not needed for normal registration and should remain disabled after the native cutover.
 
 ## Processing rules
 
@@ -10,9 +10,9 @@ The existing Microsoft Form remains the registration source. Power Automate send
 - Email matching uses the submitted **Email Address**, trimmed and lower-cased. Processing continues only when exactly one existing Student Portal profile with role `student` matches.
 - The import never creates a Supabase Auth user or a standalone profile.
 - Course matching uses only the protected exact-mapping registry. There is no fuzzy match, first-class fallback or mapping to the test class.
-- A valid match creates one `pending` application with source `microsoft_forms`. Acceptance, waitlisting, declining, enrolment and notifications continue through the existing Applications workflow.
+- A valid match creates one `pending` application with source `microsoft_forms` only when the linked class is active, explicitly accepting Portal applications and inside its registration window. Acceptance, waitlisting, declining, enrolment and notifications continue through the existing Applications workflow.
 - The existing `(student_id, class_id)` database constraint prevents duplicate applications. A second response for the same student and class is held for administrator review and linked to the existing application.
-- Missing, invalid, unmatched or failed submissions remain available under **Admin → Forms Imports**. An administrator can link a course to a real class and reprocess it.
+- Missing, invalid, unmatched or failed submissions remain available under **Admin → Registration Setup**. An administrator can link a course to a real class and reprocess it.
 - Guardian, wellbeing, medical, learning, allergy and previous-study details stay in the protected intake record. They are loaded into the browser only when an authenticated administrator opens one submission for review.
 
 ## Confirmed workbook fields
@@ -48,9 +48,11 @@ These labels are pre-registered with no class assigned:
 - `Sisters Shariah Level 2 Thursday Morning`
 - `Sisters Shariah Level 3 Wednesday Evening`
 
-The parenthesised workbook variants, such as `Brothers Shariah Level 1 (Wednesday Evening)`, are canonicalised to the corresponding label above. These migrations do not create class rows because capacity, term dates, teachers and locations have not been confirmed. Create each real class with its known settings in **Admin → Classes**, then link it under **Admin → Forms Imports**.
+The parenthesised workbook variants, such as `Brothers Shariah Level 1 (Wednesday Evening)`, are canonicalised to the corresponding label above. These migrations do not create class rows because capacity, term dates, teachers and locations have not been confirmed. Create each real class with its known settings in **Admin → Classes**, enable Portal applications only when it is ready, then link it under **Admin → Registration Setup**.
 
-## Power Automate flow
+## Optional legacy Power Automate flow
+
+Do not create or enable this flow for the native Student Portal registration path. These steps are retained only if ASWJ deliberately activates the legacy fallback.
 
 1. Trigger: Microsoft Forms — **When a new response is submitted**.
 2. Action: Microsoft Forms — **Get response details**.
@@ -97,10 +99,10 @@ Do not send locale-only dates such as `13/08/2026`; the integration deliberately
 1. Apply every pending Supabase migration in filename order.
 2. Add `SUPABASE_SERVICE_ROLE_KEY`, `MS_FORMS_INGEST_SECRET` and preferably `MS_FORMS_FORM_ID` to the Vercel Production environment. None may use a `NEXT_PUBLIC_` prefix.
 3. Redeploy the application so the server receives those environment variables.
-4. Create the real class records with confirmed operational details and link each exact Forms course under **Admin → Forms Imports**.
+4. Create the real class records with confirmed operational details, enable Portal applications when ready, and link each exact course under **Admin → Registration Setup**.
 5. Keep the Power Automate flow disabled while configuring it.
 6. Submit one controlled response and confirm one immutable intake record and, when profile and course mapping match, one pending application.
 7. Replay the same response ID. Confirm the original receipt time/payload remain unchanged and no second application is created.
-8. Enable the flow for live registrations.
+8. Enable the flow only for an approved fallback period, then disable it again after recovery.
 
 The endpoint returns `201` for an automatically created pending application, `202` when the safely stored response needs review, and `200` for an idempotent retry.

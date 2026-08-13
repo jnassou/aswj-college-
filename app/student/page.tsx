@@ -194,7 +194,17 @@ function AttendanceStanding({ enrolment }: { enrolment: PortalEnrolment }) {
   );
 }
 
-export default async function StudentPortal() {
+export default async function StudentPortal({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    applied?: string | string[];
+    already?: string | string[];
+  }>;
+}) {
+  const params = await searchParams;
+  const applied = (Array.isArray(params.applied) ? params.applied[0] : params.applied) === '1';
+  const already = (Array.isArray(params.already) ? params.already[0] : params.already) === '1';
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) redirect('/login');
@@ -239,6 +249,19 @@ export default async function StudentPortal() {
           <button className="btn student-signout" type="submit">Sign out</button>
         </form>
       </header>
+
+      {applied && (
+        <div className="portal-alert success" role="status">
+          <strong>Application submitted</strong>
+          <span>Your application is pending and will be reviewed by ASWJ College administration.</span>
+        </div>
+      )}
+      {already && (
+        <div className="portal-alert warning" role="status">
+          <strong>Application already received</strong>
+          <span>Your existing application has not been changed. Its current status appears below.</span>
+        </div>
+      )}
 
       <section className="portal-overview" aria-label="Student portal summary">
         <div className="card portal-metric">
@@ -311,6 +334,7 @@ export default async function StudentPortal() {
             <span className="small">Registration workflow</span>
             <h2>Applications</h2>
           </div>
+          <a className="btn btn-primary" href="/student/apply">Apply for a class</a>
         </div>
 
         {data.applications.length ? (
@@ -339,7 +363,8 @@ export default async function StudentPortal() {
         ) : (
           <div className="card portal-empty">
             <strong>No applications are linked to this account.</strong>
-            <span>Contact ASWJ College administration for current registration options.</span>
+            <span>Choose an available class to begin an application.</span>
+            <a className="btn btn-primary" href="/student/apply">Apply for a class</a>
           </div>
         )}
       </section>

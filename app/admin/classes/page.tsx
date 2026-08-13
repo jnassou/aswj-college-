@@ -11,7 +11,7 @@ export default async function ClassesPage() {
   ] = await Promise.all([
     supabase
       .from('classes')
-      .select('id,name,term,teacher_id,location,capacity,absence_threshold,registration_opens_at,registration_closes_at,starts_on,ends_on,day_of_week,start_time,end_time,active')
+      .select('id,name,term,teacher_id,location,capacity,absence_threshold,registration_enabled,registration_opens_at,registration_closes_at,starts_on,ends_on,day_of_week,start_time,end_time,active')
       .order('active', { ascending: false })
       .order('name'),
     supabase

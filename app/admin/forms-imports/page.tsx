@@ -73,7 +73,7 @@ export default async function FormsImportsPage() {
       .order('external_course_name'),
     admin
       .from('classes')
-      .select('id,name,term,active')
+      .select('id,name,term,active,registration_enabled')
       .order('active', { ascending: false })
       .order('name'),
     admin
@@ -137,6 +137,7 @@ export default async function FormsImportsPage() {
     name: String(row.name),
     term: row.term ? String(row.term) : null,
     active: Boolean(row.active),
+    registrationEnabled: Boolean(row.registration_enabled),
   }));
 
   const statusCounts = {
@@ -150,9 +151,9 @@ export default async function FormsImportsPage() {
     <>
       <div className="topbar">
         <div>
-          <h1>Forms Imports</h1>
+          <h1>Registration Setup</h1>
           <p className="subtitle">
-            Review Microsoft Forms registrations, connect exact course names and reprocess safe imports.
+            Connect the five application choices to real classes and review any legacy Microsoft Forms imports.
           </p>
         </div>
       </div>

@@ -20,6 +20,7 @@ export type ClassRow = {
   capacity: number;
   enrolled: number;
   absence_threshold: number;
+  registration_enabled: boolean;
   registration_opens_at: string | null;
   registration_closes_at: string | null;
   starts_on: string | null;
@@ -165,13 +166,14 @@ export default function ClassesClient({
               <th>Teacher</th>
               <th>Location</th>
               <th>Absence rule</th>
+              <th>Portal applications</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {visibleRows.length === 0 ? (
-              <tr><td colSpan={8}><span className="small">No classes created yet.</span></td></tr>
+              <tr><td colSpan={9}><span className="small">No classes created yet.</span></td></tr>
             ) : visibleRows.map((row) => (
               <tr key={row.id}>
                 <td><strong>{row.name}</strong><br/><span className="small">{row.term || 'No term set'}</span></td>
@@ -180,6 +182,11 @@ export default function ClassesClient({
                 <td>{row.teacher_name || 'Unassigned'}</td>
                 <td>{row.location || '—'}</td>
                 <td>{row.absence_threshold} consecutive</td>
+                <td>
+                  <span className={`badge ${row.registration_enabled ? 'blue' : 'grey'}`}>
+                    {row.registration_enabled ? 'Allowed' : 'Not allowed'}
+                  </span>
+                </td>
                 <td><span className={`badge ${row.active ? 'green' : 'grey'}`}>{row.active ? 'Active' : 'Archived'}</span></td>
                 <td>
                   <div className="actions">
@@ -217,6 +224,21 @@ export default function ClassesClient({
                   <label>Location</label>
                   <input name="location" placeholder="e.g. Revesby" defaultValue={selected?.location ?? ''} />
                 </div>
+              </div>
+
+              <div className="field">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input
+                    name="registration_enabled"
+                    type="checkbox"
+                    defaultChecked={selected?.registration_enabled ?? false}
+                    style={{ width: 'auto' }}
+                  />
+                  Allow Student Portal applications
+                </label>
+                <span className="small">
+                  Students can apply only while this class is active and within any registration dates set below.
+                </span>
               </div>
 
               <div className="form-row">

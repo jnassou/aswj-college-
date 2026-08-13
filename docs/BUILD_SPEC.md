@@ -28,16 +28,17 @@
 - System flags; authorised admin decides.
 - A suspension may release one class place and trigger a waitlist offer workflow.
 
-## Microsoft 365 integration
-Existing Microsoft Forms remain operational during migration.
-Recommended Power Automate flow:
+## Registration source
+The authenticated ASWJ Student Portal form is the primary registration source and writes into the normal pending-application workflow. Microsoft Forms remains a legacy operational fallback only.
+
+If the fallback is deliberately enabled, the Power Automate flow is:
 1. When a new response is submitted
 2. Get response details
 3. Transform the response into the ASWJ application payload
 4. POST to an authenticated ingestion endpoint in the ASWJ application
 5. Store Microsoft response ID for deduplication/audit
 
-Microsoft 365 may also be used for Outlook notifications and staff workflow integration where useful, but it is not the system-of-record database for the core application.
+Microsoft 365 may also be used for Outlook notifications and staff workflow integration where useful, but it is not the registration interface or system-of-record database for the core application.
 
 ## Permissions
 ### Teacher

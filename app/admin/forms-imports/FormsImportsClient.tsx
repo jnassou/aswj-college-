@@ -38,6 +38,7 @@ export type FormsClassOption = {
   name: string;
   term: string | null;
   active: boolean;
+  registrationEnabled: boolean;
 };
 
 type FormsSubmissionDetail = Awaited<ReturnType<typeof getFormsSubmissionDetails>>;
@@ -226,14 +227,14 @@ export default function FormsImportsClient({
           <div>
             <h2>Exact course mapping</h2>
             <div className="small">
-              Only these explicit links are used. Unlinked or unknown courses remain in review.
+              These links drive the Student Portal form and legacy imports. A linked class must also allow Portal applications in Classes.
             </div>
           </div>
           <a className="btn btn-outline" href="/admin/classes">Manage classes</a>
         </div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Microsoft Forms course</th><th>ASWJ class</th><th>Status</th></tr></thead>
+            <thead><tr><th>Application course</th><th>ASWJ class</th><th>Status</th></tr></thead>
             <tbody>
               {mappings.map((mapping) => {
                 const mappedClass = mapping.classId ? classById.get(mapping.classId) : null;
@@ -243,6 +244,8 @@ export default function FormsImportsClient({
                     ? { text: 'Needs class', tone: 'amber' }
                     : !mappedClass || !mappedClass.active
                       ? { text: 'Archived class', tone: 'red' }
+                      : !mappedClass.registrationEnabled
+                        ? { text: 'Portal disabled', tone: 'amber' }
                       : { text: 'Linked', tone: 'green' };
 
                 return (
@@ -281,8 +284,8 @@ export default function FormsImportsClient({
       <section className="section">
         <div className="section-head">
           <div>
-            <h2>Registration imports</h2>
-            <div className="small">Raw responses remain private and are retained for audit and recovery.</div>
+            <h2>Legacy Microsoft Forms imports</h2>
+            <div className="small">Raw legacy responses remain private and are retained for audit and recovery.</div>
           </div>
         </div>
 

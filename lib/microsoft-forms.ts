@@ -1,14 +1,10 @@
+import { REGISTRATION_COURSES } from './registration-courses';
+
 export const MAX_FORMS_PAYLOAD_BYTES = 256 * 1024;
 
 export const MICROSOFT_FORMS_PROVIDER = 'microsoft_forms';
 
-export const MICROSOFT_FORMS_COURSES = [
-  'Brothers Shariah Level 1 Wednesday Evening',
-  'Brothers Shariah Level 3 Wednesday Evening',
-  'Sisters Shariah Level 1 Thursday Morning',
-  'Sisters Shariah Level 2 Thursday Morning',
-  'Sisters Shariah Level 3 Wednesday Evening',
-] as const;
+export const MICROSOFT_FORMS_COURSES = REGISTRATION_COURSES;
 
 const COURSE_ALIASES = new Map<string, string>([
   ...MICROSOFT_FORMS_COURSES.map((course) => [course, course] as const),
