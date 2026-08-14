@@ -231,14 +231,12 @@ export async function updateFormsCourseMapping(
   mappingId: string,
   classId: string | null
 ) {
-  const { user, profile } = await requireAdmin();
+  const { supabase, profile } = await requireAdmin();
   if (!profile) throw new Error('Administrator profile required.');
 
-  const admin = createSupabaseAdminClient();
-  const { error } = await admin.rpc('admin_set_external_course_mapping', {
+  const { error } = await supabase.rpc('admin_set_registration_course_mapping', {
     p_mapping_id: mappingId,
     p_class_id: classId?.trim() || null,
-    p_actor_id: user.id,
   });
 
   if (error) throw new Error('The course mapping could not be saved.');

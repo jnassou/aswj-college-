@@ -34,7 +34,7 @@ The existing test class is not exposed because `registration_enabled` defaults t
 - Keep the Power Automate flow disabled for the native registration launch.
 - Retain **Registration Setup** and existing Microsoft receipts until every unresolved legacy import is handled.
 - `MS_FORMS_INGEST_SECRET` and `MS_FORMS_FORM_ID` are needed only if the legacy webhook is deliberately used.
-- `SUPABASE_SERVICE_ROLE_KEY` remains server-only and is used by the protected Registration Setup/legacy review tooling. It must never use a `NEXT_PUBLIC_` prefix.
+- `SUPABASE_SERVICE_ROLE_KEY` remains server-only and is optional for the protected legacy Microsoft Forms review tooling. Native Registration Setup uses the signed-in admin session and does not require this key. It must never use a `NEXT_PUBLIC_` prefix.
 
 ## Remaining operational controls
 

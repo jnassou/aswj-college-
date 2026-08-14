@@ -89,11 +89,13 @@ export default function FormsImportsClient({
   mappings,
   classes,
   statusCounts,
+  legacyAvailable,
 }: {
   rows: FormsSubmissionRow[];
   mappings: FormsCourseMappingRow[];
   classes: FormsClassOption[];
   statusCounts: StatusCounts;
+  legacyAvailable: boolean;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('attention');
@@ -289,74 +291,85 @@ export default function FormsImportsClient({
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="form-row" style={{ alignItems: 'end' }}>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label>Search loaded imports</label>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Student, email, phone, course or response ID"
-              />
-            </div>
-            <div className="small">
-              Showing {visible.length} loaded record{visible.length === 1 ? '' : 's'}; {totalCount} total
-            </div>
+        {!legacyAvailable ? (
+          <div className="card">
+            <strong>Legacy Microsoft Forms review is unavailable.</strong>
+            <p className="small" style={{ marginBottom: 0 }}>
+              Native Student Portal applications and the course links above continue to work normally.
+            </p>
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div className="form-row" style={{ alignItems: 'end' }}>
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label>Search loaded imports</label>
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Student, email, phone, course or response ID"
+                  />
+                </div>
+                <div className="small">
+                  Showing {visible.length} loaded record{visible.length === 1 ? '' : 's'}; {totalCount} total
+                </div>
+              </div>
+            </div>
 
-        <div className="filters">
-          {FILTERS.map((item) => (
-            <button
-              key={item}
-              className={`filter ${filter === item ? 'active' : ''}`}
-              onClick={() => setFilter(item)}
-            >
-              {label(item)} ({counts[item] ?? 0})
-            </button>
-          ))}
-        </div>
-
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Student</th><th>Requested course</th><th>Completed</th><th>Status</th><th>Attempts</th><th></th></tr>
-            </thead>
-            <tbody>
-              {visible.length === 0 ? (
-                <tr><td colSpan={6}><span className="small">No loaded Forms imports match this view.</span></td></tr>
-              ) : visible.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <strong>{studentName(row)}</strong><br/>
-                    <span className="small">{row.emailAddress || row.phoneNumber || row.externalResponseId}</span>
-                  </td>
-                  <td>{row.selectedCourse || '—'}</td>
-                  <td>{formatDate(row.completedAt ?? row.receivedAt)}</td>
-                  <td>
-                    <span className={`badge ${statusTone(row.processingStatus)}`}>
-                      {label(row.processingStatus)}
-                    </span><br/>
-                    {row.processingCode && <span className="small">{label(row.processingCode)}</span>}
-                  </td>
-                  <td>{row.attemptCount}</td>
-                  <td>
-                    <button
-                      className="btn btn-outline"
-                      disabled={pending}
-                      onClick={() => openDetails(row)}
-                    >
-                      Review
-                    </button>
-                  </td>
-                </tr>
+            <div className="filters">
+              {FILTERS.map((item) => (
+                <button
+                  key={item}
+                  className={`filter ${filter === item ? 'active' : ''}`}
+                  onClick={() => setFilter(item)}
+                >
+                  {label(item)} ({counts[item] ?? 0})
+                </button>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Student</th><th>Requested course</th><th>Completed</th><th>Status</th><th>Attempts</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {visible.length === 0 ? (
+                    <tr><td colSpan={6}><span className="small">No loaded Forms imports match this view.</span></td></tr>
+                  ) : visible.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <strong>{studentName(row)}</strong><br/>
+                        <span className="small">{row.emailAddress || row.phoneNumber || row.externalResponseId}</span>
+                      </td>
+                      <td>{row.selectedCourse || '—'}</td>
+                      <td>{formatDate(row.completedAt ?? row.receivedAt)}</td>
+                      <td>
+                        <span className={`badge ${statusTone(row.processingStatus)}`}>
+                          {label(row.processingStatus)}
+                        </span><br/>
+                        {row.processingCode && <span className="small">{label(row.processingCode)}</span>}
+                      </td>
+                      <td>{row.attemptCount}</td>
+                      <td>
+                        <button
+                          className="btn btn-outline"
+                          disabled={pending}
+                          onClick={() => openDetails(row)}
+                        >
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
 
-      {selected && (
+      {legacyAvailable && selected && (
         <div className="modal-backdrop" onMouseDown={() => !pending && setSelected(null)}>
           <div
             className="modal"
