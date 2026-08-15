@@ -97,7 +97,7 @@ Do not send locale-only dates such as `13/08/2026`; the integration deliberately
 ## Deployment sequence
 
 1. For the class-driven native registration cutover, first apply only `20260815051811_portal_class_application_choices.sql` so both the old and new application versions can run.
-2. Deploy and verify the class-driven application UI, then apply `20260815235959_retire_mapped_native_registration_rpcs.sql`. This order avoids breaking the previous live UI during deployment. Fresh installations may apply all migrations in filename order before the app is first started.
+2. Deploy and verify the class-driven application UI, then apply `20260815052136_retire_mapped_native_registration_rpcs.sql`. This order avoids breaking the previous live UI during deployment. Fresh installations may apply all migrations in filename order before the app is first started.
 3. Add `SUPABASE_SERVICE_ROLE_KEY`, `MS_FORMS_INGEST_SECRET` and preferably `MS_FORMS_FORM_ID` to the Vercel Production environment only if the legacy fallback is deliberately used. None may use a `NEXT_PUBLIC_` prefix.
 4. Redeploy the application after changing those environment variables.
 5. Create the real class records with confirmed operational details and enable Portal applications when ready. Link an exact Microsoft course label under **Admin → Legacy Forms** only for the legacy fallback.
