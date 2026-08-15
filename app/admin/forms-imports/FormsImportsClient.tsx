@@ -227,16 +227,16 @@ export default function FormsImportsClient({
       <section className="section">
         <div className="section-head">
           <div>
-            <h2>Exact course mapping</h2>
+            <h2>Legacy Microsoft Forms course mapping</h2>
             <div className="small">
-              These links drive the Student Portal form and legacy imports. A linked class must also allow Portal applications in Classes.
+              These links are used only to match saved Microsoft Forms course names when reviewing or reprocessing legacy imports. They do not control Student Portal choices.
             </div>
           </div>
           <a className="btn btn-outline" href="/admin/classes">Manage classes</a>
         </div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Application course</th><th>ASWJ class</th><th>Status</th></tr></thead>
+            <thead><tr><th>Microsoft Forms course</th><th>ASWJ class</th><th>Status</th></tr></thead>
             <tbody>
               {mappings.map((mapping) => {
                 const mappedClass = mapping.classId ? classById.get(mapping.classId) : null;
@@ -247,7 +247,7 @@ export default function FormsImportsClient({
                     : !mappedClass || !mappedClass.active
                       ? { text: 'Archived class', tone: 'red' }
                       : !mappedClass.registrationEnabled
-                        ? { text: 'Portal disabled', tone: 'amber' }
+                        ? { text: 'Applications disabled', tone: 'amber' }
                       : { text: 'Linked', tone: 'green' };
 
                 return (
@@ -295,7 +295,7 @@ export default function FormsImportsClient({
           <div className="card">
             <strong>Legacy Microsoft Forms review is unavailable.</strong>
             <p className="small" style={{ marginBottom: 0 }}>
-              Native Student Portal applications and the course links above continue to work normally.
+              Native applications continue to work from classes enabled under Admin → Classes. The legacy mapping above remains available.
             </p>
           </div>
         ) : (

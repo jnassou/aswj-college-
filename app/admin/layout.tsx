@@ -6,10 +6,10 @@ import { logout } from '../login/actions';
 const links = [
   ['/admin', 'Dashboard'],
   ['/admin/applications', 'Applications'],
-  ['/admin/forms-imports', 'Registration Setup'],
+  ['/admin/classes', 'Classes'],
+  ['/admin/forms-imports', 'Legacy Forms'],
   ['/admin/attendance-review', 'Attendance Review'],
   ['/admin/students', 'Students'],
-  ['/admin/classes', 'Classes'],
   ['/admin/check-in', 'QR Check-in'],
 ];
 

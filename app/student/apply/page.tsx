@@ -1,16 +1,13 @@
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
-import {
-  REGISTRATION_COURSES,
-  REGISTRATION_PRIVACY_NOTICE_VERSION,
-} from '../../../lib/registration-courses';
+import { REGISTRATION_PRIVACY_NOTICE_VERSION } from '../../../lib/registration-courses';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 import RegistrationForm from './RegistrationForm';
 import type { RegistrationOption } from './types';
 
 type RegistrationOptionRow = {
-  course_name: string;
-  class_name: string | null;
+  class_id: string;
+  class_name: string;
   term: string | null;
   location: string | null;
   day_of_week: number | null;
@@ -42,7 +39,7 @@ export default async function StudentApplyPage() {
       .select('first_name,last_name,mobile,date_of_birth,role')
       .eq('id', user.id)
       .maybeSingle(),
-    supabase.rpc('student_registration_options'),
+    supabase.rpc('student_registration_class_options'),
   ]);
 
   if (profileResult.error || !profileResult.data) {
@@ -53,34 +50,22 @@ export default async function StudentApplyPage() {
     throw new Error('Registration options could not be loaded.');
   }
 
-  const exactCourses = new Set<string>(REGISTRATION_COURSES);
   const rows = (optionsResult.data ?? []) as RegistrationOptionRow[];
-  const rowByCourse = new Map(
-    rows
-      .filter((row) => exactCourses.has(String(row.course_name)))
-      .map((row) => [String(row.course_name), row])
-  );
-
-  const options: RegistrationOption[] = REGISTRATION_COURSES.map((courseName) => {
-    const row = rowByCourse.get(courseName);
-    return {
-      courseName,
-      className: row?.class_name ? String(row.class_name) : null,
-      term: row?.term ? String(row.term) : null,
-      location: row?.location ? String(row.location) : null,
-      dayOfWeek: row?.day_of_week === null || row?.day_of_week === undefined
-        ? null
-        : Number(row.day_of_week),
-      startTime: row?.start_time ? String(row.start_time) : null,
-      endTime: row?.end_time ? String(row.end_time) : null,
-      available: Boolean(row?.available),
-      availabilityReason: row?.availability_reason
-        ? String(row.availability_reason)
-        : row
-          ? null
-          : 'not_configured',
-    };
-  });
+  const options: RegistrationOption[] = rows.map((row) => ({
+    classId: String(row.class_id),
+    className: String(row.class_name),
+    term: row.term ? String(row.term) : null,
+    location: row.location ? String(row.location) : null,
+    dayOfWeek: row.day_of_week === null || row.day_of_week === undefined
+      ? null
+      : Number(row.day_of_week),
+    startTime: row.start_time ? String(row.start_time) : null,
+    endTime: row.end_time ? String(row.end_time) : null,
+    available: Boolean(row.available),
+    availabilityReason: row.availability_reason
+      ? String(row.availability_reason)
+      : null,
+  }));
 
   return (
     <main className="student-portal">
@@ -111,7 +96,7 @@ export default async function StudentApplyPage() {
           </div>
         </div>
         <p className="subtitle" style={{ marginBottom: 16, lineHeight: 1.55 }}>
-          Complete this form once. Your application will be submitted as pending for
+          Complete this form for the class you want to apply for. Your application will be submitted as pending for
           administration to review, and its status will appear in your Student Portal.
         </p>
 

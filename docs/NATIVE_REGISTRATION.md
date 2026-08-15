@@ -8,33 +8,30 @@ The ASWJ Student Portal form is the primary registration path. It does not requi
 2. Create a Student Portal account or sign in with an existing account.
 3. Confirm the email address when Supabase email confirmation is enabled.
 4. Open **Apply for a class** in the Student Portal.
-5. Choose an available course and submit the form once.
+5. Choose an available class and submit the form once.
 6. Follow the pending application and its outcome in the Student Portal.
 
-The submitted email is always taken from the confirmed signed-in account. The browser cannot choose a student ID, class UUID, application status or source.
+The submitted email is always taken from the confirmed signed-in account. The browser submits the selected class ID, but the database independently verifies that the class is active, enabled for Portal applications and inside its registration window. The browser cannot choose a student ID, application status or source.
 
 ## Administrator setup
 
-The five supported course labels already exist, but no capacity, teacher, term dates or location is invented by the migration.
-
-For each real course:
+For each real class:
 
 1. Create the real class under **Admin → Classes** using confirmed capacity and schedule details.
-2. Under **Admin → Registration Setup**, link the exact course label to that class.
-3. Return to **Admin → Classes** and enable **Allow Student Portal applications** only when registration is ready.
-4. Optionally set registration open and close times. The form and legacy fallback both enforce them at submission time.
-5. Test with one confirmed student account. Confirm exactly one pending record appears in both the Student Portal and **Admin → Applications**.
-6. Open the Admin review modal and verify the protected submitted details load only on demand.
-7. Submit the same course again and confirm the existing application remains unchanged.
+2. Enable **Allow Student Portal applications** only when registration is ready. The class appears automatically as a Student Portal choice; no separate mapping is required.
+3. Optionally set registration open and close times. The form enforces them again at submission time.
+4. Test with one confirmed student account. Confirm exactly one pending record appears in both the Student Portal and **Admin → Applications**.
+5. Open the Admin review modal and verify the protected submitted details load only on demand.
+6. Submit the same class again and confirm the existing application remains unchanged.
 
-The existing test class is not exposed because `registration_enabled` defaults to false and the application accepts only the five exact mapped course labels.
+New and duplicated classes start with `registration_enabled` set to false, so they are not exposed until an administrator deliberately enables them. Class IDs, rather than names, keep classes distinct even when names are similar or duplicated.
 
 ## Microsoft cutover
 
 - Keep the Power Automate flow disabled for the native registration launch.
-- Retain **Registration Setup** and existing Microsoft receipts until every unresolved legacy import is handled.
+- Retain **Legacy Forms** and existing Microsoft receipts until every unresolved legacy import is handled.
 - `MS_FORMS_INGEST_SECRET` and `MS_FORMS_FORM_ID` are needed only if the legacy webhook is deliberately used.
-- `SUPABASE_SERVICE_ROLE_KEY` remains server-only and is optional for the protected legacy Microsoft Forms review tooling. Native Registration Setup uses the signed-in admin session and does not require this key. It must never use a `NEXT_PUBLIC_` prefix.
+- `SUPABASE_SERVICE_ROLE_KEY` remains server-only and is optional for the protected legacy Microsoft Forms review tooling. Native class choices do not require this key. It must never use a `NEXT_PUBLIC_` prefix.
 
 ## Remaining operational controls
 

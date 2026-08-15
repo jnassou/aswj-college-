@@ -27,7 +27,7 @@ Supabase project is connected and the production schema is deployed.
 - Exact Forms course registry with no fallback to the test class
 - Protected Forms import review, class assignment and reprocessing workflow
 - Public Apply entry page and authenticated Student Portal application form
-- Exact five-course native application choices with no arbitrary/test-class selection
+- Native application choices derived directly from classes explicitly enabled by administrators
 - Explicit per-class Portal application switch and registration-window enforcement
 - Confirmed-account identity, atomic duplicate protection and pending Admin Applications hand-off
 - Protected one-to-one native registration details loaded only for an authorised administrator
@@ -41,4 +41,4 @@ Do not expose an open "claim admin" endpoint.
 Local source control contains only the environment template. Browser values use the public Supabase URL/publishable key; service-role and Forms secrets remain server-only deployment values.
 
 ## Registration cutover
-The ASWJ form in the Student Portal is now the primary registration path. Create each real class with confirmed operational details, link the exact application choice under **Admin → Registration Setup**, and explicitly enable Portal applications on the class. Existing Microsoft receipts and reprocessing remain available as a legacy fallback; Power Automate is not required for the native form.
+The ASWJ form in the Student Portal is now the primary registration path. Create each real class with confirmed operational details under **Admin → Classes** and explicitly enable Portal applications on that class. It then appears automatically in the application form without a second mapping step. Existing Microsoft receipts and reprocessing remain available under **Legacy Forms**; Power Automate is not required for the native form.

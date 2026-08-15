@@ -25,12 +25,6 @@ function availabilityCopy(reason: string | null) {
     case 'registration_closed':
     case 'after_registration_window':
       return 'Online registration has closed.';
-    case 'class_inactive':
-      return 'This class is not currently accepting applications.';
-    case 'course_unconfigured':
-    case 'class_not_configured':
-    case 'not_configured':
-      return 'Online registration is not yet available for this course.';
     default:
       return 'Online registration is not currently available.';
   }
@@ -96,32 +90,33 @@ export default function RegistrationForm({
         </div>
       )}
 
-      <section className="card" aria-labelledby="course-heading">
-        <h2 id="course-heading" style={{ marginTop: 0 }}>Choose a course</h2>
+      <section className="card" aria-labelledby="class-heading">
+        <h2 id="class-heading" style={{ marginTop: 0 }}>Choose a class</h2>
         <div className="field">
-          <label htmlFor="course_name">Course</label>
+          <label htmlFor="class_id">Class</label>
           <select
-            id="course_name"
-            name="course_name"
+            id="class_id"
+            name="class_id"
             defaultValue=""
             required
-            aria-invalid={Boolean(errorFor('course_name'))}
-            aria-describedby={describedBy('course_name')}
+            aria-invalid={Boolean(errorFor('class_id'))}
+            aria-describedby={describedBy('class_id')}
           >
-            <option value="" disabled>Select an available course</option>
+            <option value="" disabled>Select an available class</option>
             {options.map((option) => (
               <option
-                key={option.courseName}
-                value={option.courseName}
+                key={option.classId}
+                value={option.classId}
                 disabled={!option.available}
               >
-                {option.courseName}{option.available ? '' : ' — unavailable'}
+                {[option.className, option.term, optionSchedule(option)].filter(Boolean).join(' — ')}
+                {option.available ? '' : ' — unavailable'}
               </option>
             ))}
           </select>
-          {errorFor('course_name') && (
-            <span id={fieldErrorId('course_name')} className="small" style={{ color: 'var(--danger)' }}>
-              {errorFor('course_name')}
+          {errorFor('class_id') && (
+            <span id={fieldErrorId('class_id')} className="small" style={{ color: 'var(--danger)' }}>
+              {errorFor('class_id')}
             </span>
           )}
         </div>
@@ -129,16 +124,13 @@ export default function RegistrationForm({
         <div style={{ display: 'grid', gap: 10 }}>
           {options.map((option) => (
             <article
-              key={option.courseName}
+              key={option.classId}
               style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}
             >
-              <strong>{option.courseName}</strong>
-              {option.available ? (
-                <>
-                  {option.className && <div className="small" style={{ marginTop: 4 }}>{option.className}{option.term ? ` — ${option.term}` : ''}</div>}
-                  {optionSchedule(option) && <div className="small" style={{ marginTop: 3 }}>{optionSchedule(option)}</div>}
-                </>
-              ) : (
+              <strong>{option.className}</strong>
+              {option.term && <div className="small" style={{ marginTop: 4 }}>{option.term}</div>}
+              {optionSchedule(option) && <div className="small" style={{ marginTop: 3 }}>{optionSchedule(option)}</div>}
+              {!option.available && (
                 <div className="small" style={{ marginTop: 4 }}>{availabilityCopy(option.availabilityReason)}</div>
               )}
             </article>
@@ -313,7 +305,11 @@ export default function RegistrationForm({
       {availableOptions.length === 0 && (
         <div className="portal-alert warning" role="status">
           <strong>Online applications are not currently available.</strong>
-          <span>The listed courses will become selectable when their confirmed classes are open.</span>
+          <span>
+            {options.length === 0
+              ? 'Classes appear here when administration enables Student Portal applications on an active class.'
+              : 'The listed classes are outside their registration dates.'}
+          </span>
         </div>
       )}
 

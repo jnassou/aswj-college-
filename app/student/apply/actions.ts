@@ -2,11 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import {
-  REGISTRATION_COURSES,
-  REGISTRATION_PRIVACY_NOTICE_VERSION,
-  type RegistrationCourseName,
-} from '../../../lib/registration-courses';
+import { REGISTRATION_PRIVACY_NOTICE_VERSION } from '../../../lib/registration-courses';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 import type {
   RegistrationActionState,
@@ -28,9 +24,7 @@ function fieldValue(formData: FormData, name: string) {
   return typeof value === 'string' ? value.normalize('NFKC').trim() : '';
 }
 
-function isRegistrationCourse(value: string): value is RegistrationCourseName {
-  return (REGISTRATION_COURSES as readonly string[]).includes(value);
-}
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function hasSingleLineControls(value: string) {
   return /[\u0000-\u001f\u007f-\u009f]/.test(value);
@@ -107,7 +101,7 @@ export async function submitStudentRegistration(
     return errorState('Student access is required to submit a class application.');
   }
 
-  const courseName = fieldValue(formData, 'course_name');
+  const classId = fieldValue(formData, 'class_id');
   const firstName = fieldValue(formData, 'first_name');
   const lastName = fieldValue(formData, 'last_name');
   const dateOfBirth = fieldValue(formData, 'date_of_birth');
@@ -123,8 +117,8 @@ export async function submitStudentRegistration(
   const privacyConsent = formData.get('privacy_consent') === 'on';
   const fieldErrors: Partial<Record<RegistrationFieldName, string>> = {};
 
-  if (!isRegistrationCourse(courseName)) {
-    fieldErrors.course_name = 'Choose an available course.';
+  if (!UUID_PATTERN.test(classId)) {
+    fieldErrors.class_id = 'Choose an available class.';
   }
   if (!firstName || firstName.length > NAME_MAX_LENGTH || hasSingleLineControls(firstName)) {
     fieldErrors.first_name = 'Enter a valid first name of 100 characters or fewer.';
@@ -171,8 +165,8 @@ export async function submitStudentRegistration(
   }
 
   const { data, error } = await supabase
-    .rpc('student_submit_registration', {
-      p_course_name: courseName,
+    .rpc('student_submit_class_application', {
+      p_class_id: classId,
       p_first_name: firstName,
       p_last_name: lastName,
       p_date_of_birth: dateOfBirth,

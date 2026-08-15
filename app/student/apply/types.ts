@@ -1,6 +1,6 @@
 export type RegistrationOption = {
-  courseName: string;
-  className: string | null;
+  classId: string;
+  className: string;
   term: string | null;
   location: string | null;
   dayOfWeek: number | null;
@@ -11,7 +11,7 @@ export type RegistrationOption = {
 };
 
 export type RegistrationFieldName =
-  | 'course_name'
+  | 'class_id'
   | 'first_name'
   | 'last_name'
   | 'date_of_birth'

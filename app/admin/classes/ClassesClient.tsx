@@ -271,7 +271,7 @@ export default function ClassesClient({
                   Allow Student Portal applications
                 </label>
                 <span className="small">
-                  Students can apply only while this class is active and within any registration dates set below.
+                  When this class is active and this option is enabled, it appears automatically in the Student Portal application form, subject to any registration dates below.
                 </span>
               </div>
 

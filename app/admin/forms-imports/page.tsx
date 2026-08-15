@@ -175,9 +175,9 @@ export default async function FormsImportsPage() {
     <>
       <div className="topbar">
         <div>
-          <h1>Registration Setup</h1>
+          <h1>Legacy Forms Setup</h1>
           <p className="subtitle">
-            Connect the five application choices to real classes and review any legacy Microsoft Forms imports.
+            Student Portal choices come directly from enabled classes. Review mappings and submissions from the previous Microsoft Forms workflow here.
           </p>
         </div>
       </div>

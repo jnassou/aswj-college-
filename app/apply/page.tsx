@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import { REGISTRATION_COURSES } from '../../lib/registration-courses';
 import { createSupabaseServerClient, hasSupabaseConfig } from '../../lib/supabase/server';
 
 export const metadata = {
@@ -43,7 +42,7 @@ export default async function ApplyLandingPage() {
           <strong>How it works</strong>
           <ol style={{ lineHeight: 1.7, paddingLeft: 22, marginBottom: 0 }}>
             <li>Create or sign in to your Student Portal account.</li>
-            <li>Choose an available course and submit your registration details.</li>
+            <li>Choose an available class and submit your registration details.</li>
             <li>Track the pending application and its outcome in the portal.</li>
           </ol>
         </div>
@@ -64,14 +63,12 @@ export default async function ApplyLandingPage() {
           )}
         </div>
 
-        <section style={{ marginTop: 28 }} aria-labelledby="available-courses-heading">
-          <h2 id="available-courses-heading" style={{ fontSize: 18 }}>Supported courses</h2>
+        <section style={{ marginTop: 28 }} aria-labelledby="available-classes-heading">
+          <h2 id="available-classes-heading" style={{ fontSize: 18 }}>Available classes</h2>
           <p className="small">
-            Availability and confirmed class details are shown after you sign in.
+            Current class choices and their confirmed schedules are shown after you sign in.
+            The list is managed directly by ASWJ College administration.
           </p>
-          <ul style={{ lineHeight: 1.65, paddingLeft: 22 }}>
-            {REGISTRATION_COURSES.map((course) => <li key={course}>{course}</li>)}
-          </ul>
         </section>
       </section>
     </main>

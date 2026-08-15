@@ -12,7 +12,7 @@ The Student Portal form is the primary registration source. This server-to-serve
 - Course matching uses only the protected exact-mapping registry. There is no fuzzy match, first-class fallback or mapping to the test class.
 - A valid match creates one `pending` application with source `microsoft_forms` only when the linked class is active, explicitly accepting Portal applications and inside its registration window. Acceptance, waitlisting, declining, enrolment and notifications continue through the existing Applications workflow.
 - The existing `(student_id, class_id)` database constraint prevents duplicate applications. A second response for the same student and class is held for administrator review and linked to the existing application.
-- Missing, invalid, unmatched or failed submissions remain available under **Admin → Registration Setup**. An administrator can link a course to a real class and reprocess it.
+- Missing, invalid, unmatched or failed submissions remain available under **Admin → Legacy Forms**. An administrator can link a saved Microsoft course label to a real class and reprocess it.
 - Guardian, wellbeing, medical, learning, allergy and previous-study details stay in the protected intake record. They are loaded into the browser only when an authenticated administrator opens one submission for review.
 
 ## Confirmed workbook fields
@@ -48,7 +48,7 @@ These labels are pre-registered with no class assigned:
 - `Sisters Shariah Level 2 Thursday Morning`
 - `Sisters Shariah Level 3 Wednesday Evening`
 
-The parenthesised workbook variants, such as `Brothers Shariah Level 1 (Wednesday Evening)`, are canonicalised to the corresponding label above. These migrations do not create class rows because capacity, term dates, teachers and locations have not been confirmed. Create each real class with its known settings in **Admin → Classes**, enable Portal applications only when it is ready, then link it under **Admin → Registration Setup**.
+The parenthesised workbook variants, such as `Brothers Shariah Level 1 (Wednesday Evening)`, are canonicalised to the corresponding label above. These mappings are only for legacy Microsoft Forms receipts; they do not control the native Student Portal list. Create each real class with its known settings in **Admin → Classes**, enable Portal applications only when it is ready, then link the legacy label under **Admin → Legacy Forms** only if saved Microsoft receipts need processing.
 
 ## Optional legacy Power Automate flow
 
@@ -96,13 +96,14 @@ Do not send locale-only dates such as `13/08/2026`; the integration deliberately
 
 ## Deployment sequence
 
-1. Apply every pending Supabase migration in filename order.
-2. Add `SUPABASE_SERVICE_ROLE_KEY`, `MS_FORMS_INGEST_SECRET` and preferably `MS_FORMS_FORM_ID` to the Vercel Production environment. None may use a `NEXT_PUBLIC_` prefix.
-3. Redeploy the application so the server receives those environment variables.
-4. Create the real class records with confirmed operational details, enable Portal applications when ready, and link each exact course under **Admin → Registration Setup**.
-5. Keep the Power Automate flow disabled while configuring it.
-6. Submit one controlled response and confirm one immutable intake record and, when profile and course mapping match, one pending application.
-7. Replay the same response ID. Confirm the original receipt time/payload remain unchanged and no second application is created.
-8. Enable the flow only for an approved fallback period, then disable it again after recovery.
+1. For the class-driven native registration cutover, first apply only `20260815051811_portal_class_application_choices.sql` so both the old and new application versions can run.
+2. Deploy and verify the class-driven application UI, then apply `20260815235959_retire_mapped_native_registration_rpcs.sql`. This order avoids breaking the previous live UI during deployment. Fresh installations may apply all migrations in filename order before the app is first started.
+3. Add `SUPABASE_SERVICE_ROLE_KEY`, `MS_FORMS_INGEST_SECRET` and preferably `MS_FORMS_FORM_ID` to the Vercel Production environment only if the legacy fallback is deliberately used. None may use a `NEXT_PUBLIC_` prefix.
+4. Redeploy the application after changing those environment variables.
+5. Create the real class records with confirmed operational details and enable Portal applications when ready. Link an exact Microsoft course label under **Admin → Legacy Forms** only for the legacy fallback.
+6. Keep the Power Automate flow disabled while configuring it.
+7. Submit one controlled response and confirm one immutable intake record and, when profile and course mapping match, one pending application.
+8. Replay the same response ID. Confirm the original receipt time/payload remain unchanged and no second application is created.
+9. Enable the flow only for an approved fallback period, then disable it again after recovery.
 
 The endpoint returns `201` for an automatically created pending application, `202` when the safely stored response needs review, and `200` for an idempotent retry.

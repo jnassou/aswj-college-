@@ -1,10 +1,10 @@
-import { REGISTRATION_COURSES } from './registration-courses';
+import { LEGACY_MICROSOFT_FORMS_COURSES } from './registration-courses';
 
 export const MAX_FORMS_PAYLOAD_BYTES = 256 * 1024;
 
 export const MICROSOFT_FORMS_PROVIDER = 'microsoft_forms';
 
-export const MICROSOFT_FORMS_COURSES = REGISTRATION_COURSES;
+export const MICROSOFT_FORMS_COURSES = LEGACY_MICROSOFT_FORMS_COURSES;
 
 const COURSE_ALIASES = new Map<string, string>([
   ...MICROSOFT_FORMS_COURSES.map((course) => [course, course] as const),

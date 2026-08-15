@@ -9,7 +9,7 @@ Two connected interfaces support the college registration and attendance workflo
 
 - Native, account-based class application form at `/student/apply`.
 - Public `/apply` entry point for student sign-in or account creation.
-- Exact five-course selection backed by administrator-controlled real-class mappings.
+- Class choices come directly from active classes explicitly enabled under **Admin → Classes**.
 - Explicit per-class Portal application switch, defaulting off so test/internal classes are never exposed accidentally.
 - Atomic duplicate-safe submission using the authenticated student identity and confirmed Auth email.
 - Private application snapshots for guardian, wellbeing, allergy and previous-study answers, loaded only when an administrator opens one application.
