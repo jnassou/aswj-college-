@@ -83,6 +83,7 @@ export default function ClassesClient({
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<ClassRow | null>(null);
+  const [duplicateSource, setDuplicateSource] = useState<ClassRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -92,17 +93,40 @@ export default function ClassesClient({
     () => rows.filter((row) => showArchived || row.active),
     [rows, showArchived]
   );
-  const startTimeValue = selected
-    ? shortTime(selected.start_time)
+  const formSource = selected ?? duplicateSource;
+  const startTimeValue = formSource
+    ? shortTime(formSource.start_time)
     : DEFAULT_CLASS_START_TIME;
-  const endTimeValue = selected
-    ? shortTime(selected.end_time)
+  const endTimeValue = formSource
+    ? shortTime(formSource.end_time)
     : DEFAULT_CLASS_END_TIME;
+
+  const openCreate = () => {
+    setSelected(null);
+    setDuplicateSource(null);
+    setCreating(true);
+    setError('');
+  };
+
+  const openEdit = (row: ClassRow) => {
+    setCreating(false);
+    setDuplicateSource(null);
+    setSelected(row);
+    setError('');
+  };
+
+  const openDuplicate = (row: ClassRow) => {
+    setSelected(null);
+    setDuplicateSource(row);
+    setCreating(true);
+    setError('');
+  };
 
   const closeModal = () => {
     if (pending) return;
     setCreating(false);
     setSelected(null);
+    setDuplicateSource(null);
     setError('');
   };
 
@@ -114,6 +138,7 @@ export default function ClassesClient({
         else await createClass(formData);
         setCreating(false);
         setSelected(null);
+        setDuplicateSource(null);
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'The class could not be saved.');
@@ -142,7 +167,7 @@ export default function ClassesClient({
           <h1>Classes</h1>
           <p className="subtitle">Create classes, manage capacity, schedules and attendance rules.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setCreating(true)}>
+        <button className="btn btn-primary" onClick={openCreate}>
           Create class
         </button>
       </div>
@@ -190,7 +215,8 @@ export default function ClassesClient({
                 <td><span className={`badge ${row.active ? 'green' : 'grey'}`}>{row.active ? 'Active' : 'Archived'}</span></td>
                 <td>
                   <div className="actions">
-                    <button className="btn btn-outline" onClick={() => setSelected(row)}>Edit</button>
+                    <button className="btn btn-outline" onClick={() => openEdit(row)}>Edit</button>
+                    <button className="btn btn-outline" disabled={pending} onClick={() => openDuplicate(row)}>Duplicate</button>
                     <button className={row.active ? 'btn btn-secondary' : 'btn btn-primary'} disabled={pending} onClick={() => toggleActive(row)}>
                       {row.active ? 'Archive' : 'Reactivate'}
                     </button>
@@ -205,24 +231,32 @@ export default function ClassesClient({
       {(creating || selected) && (
         <div className="modal-backdrop" onMouseDown={closeModal}>
           <div className="modal" onMouseDown={(e) => e.stopPropagation()} style={{maxHeight:'90vh', overflow:'auto'}}>
-            <h3>{selected ? 'Edit class' : 'Create class'}</h3>
-            <p className="subtitle">These settings will drive registration, enrolment and attendance.</p>
+            <h3>{selected ? 'Edit class' : duplicateSource ? 'Duplicate class' : 'Create class'}</h3>
+            <p className="subtitle">
+              {duplicateSource
+                ? 'Review the copied settings and change the class name. Student Portal applications start switched off.'
+                : 'These settings will drive registration, enrolment and attendance.'}
+            </p>
             {error && <div className="notice" style={{marginTop:16}}>{error}</div>}
 
             <form action={save} style={{marginTop:18}}>
               <div className="field">
                 <label>Class name</label>
-                <input name="name" required defaultValue={selected?.name ?? ''} />
+                <input
+                  name="name"
+                  required
+                  defaultValue={duplicateSource ? `${duplicateSource.name} copy` : selected?.name ?? ''}
+                />
               </div>
 
               <div className="form-row">
                 <div className="field">
                   <label>Term</label>
-                  <input name="term" placeholder="e.g. Term 3, 2026" defaultValue={selected?.term ?? ''} />
+                  <input name="term" placeholder="e.g. Term 3, 2026" defaultValue={formSource?.term ?? ''} />
                 </div>
                 <div className="field">
                   <label>Location</label>
-                  <input name="location" placeholder="e.g. Revesby" defaultValue={selected?.location ?? ''} />
+                  <input name="location" placeholder="e.g. Revesby" defaultValue={formSource?.location ?? ''} />
                 </div>
               </div>
 
@@ -244,28 +278,28 @@ export default function ClassesClient({
               <div className="form-row">
                 <div className="field">
                   <label>Teacher</label>
-                  <select name="teacher_id" defaultValue={selected?.teacher_id ?? ''}>
+                  <select name="teacher_id" defaultValue={formSource?.teacher_id ?? ''}>
                     <option value="">Unassigned</option>
                     {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}
                   </select>
                 </div>
                 <div className="field">
                   <label>Capacity</label>
-                  <input name="capacity" type="number" min="1" required defaultValue={selected?.capacity ?? 30} />
+                  <input name="capacity" type="number" min="1" required defaultValue={formSource?.capacity ?? 30} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="field">
                   <label>Day</label>
-                  <select name="day_of_week" defaultValue={selected?.day_of_week ?? ''}>
+                  <select name="day_of_week" defaultValue={formSource?.day_of_week ?? ''}>
                     <option value="">Not set</option>
                     {DAYS.map((day, index) => <option key={day} value={index}>{day}</option>)}
                   </select>
                 </div>
                 <div className="field">
                   <label>Consecutive absence threshold</label>
-                  <input name="absence_threshold" type="number" min="1" required defaultValue={selected?.absence_threshold ?? 3} />
+                  <input name="absence_threshold" type="number" min="1" required defaultValue={formSource?.absence_threshold ?? 3} />
                 </div>
               </div>
 
@@ -293,28 +327,30 @@ export default function ClassesClient({
               <div className="form-row">
                 <div className="field">
                   <label>Class starts</label>
-                  <input name="starts_on" type="date" defaultValue={selected?.starts_on ?? ''} />
+                  <input name="starts_on" type="date" defaultValue={formSource?.starts_on ?? ''} />
                 </div>
                 <div className="field">
                   <label>Class ends</label>
-                  <input name="ends_on" type="date" defaultValue={selected?.ends_on ?? ''} />
+                  <input name="ends_on" type="date" defaultValue={formSource?.ends_on ?? ''} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="field">
                   <label>Registration opens</label>
-                  <input name="registration_opens_at" type="datetime-local" defaultValue={localDateTime(selected?.registration_opens_at ?? null)} />
+                  <input name="registration_opens_at" type="datetime-local" defaultValue={localDateTime(formSource?.registration_opens_at ?? null)} />
                 </div>
                 <div className="field">
                   <label>Registration closes</label>
-                  <input name="registration_closes_at" type="datetime-local" defaultValue={localDateTime(selected?.registration_closes_at ?? null)} />
+                  <input name="registration_closes_at" type="datetime-local" defaultValue={localDateTime(formSource?.registration_closes_at ?? null)} />
                 </div>
               </div>
 
               <div className="modal-footer">
                 <button type="button" className="btn btn-outline" onClick={closeModal} disabled={pending}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? 'Saving…' : selected ? 'Save changes' : 'Create class'}</button>
+                <button type="submit" className="btn btn-primary" disabled={pending}>
+                  {pending ? 'Saving…' : selected ? 'Save changes' : duplicateSource ? 'Create duplicate' : 'Create class'}
+                </button>
               </div>
             </form>
           </div>
