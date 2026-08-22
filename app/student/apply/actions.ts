@@ -24,6 +24,16 @@ function fieldValue(formData: FormData, name: string) {
   return typeof value === 'string' ? value.normalize('NFKC').trim() : '';
 }
 
+function dateOfBirthValue(formData: FormData) {
+  const day = fieldValue(formData, 'date_of_birth_day');
+  const month = fieldValue(formData, 'date_of_birth_month');
+  const year = fieldValue(formData, 'date_of_birth_year');
+  if (!/^\d{2}$/.test(day) || !/^\d{2}$/.test(month) || !/^\d{4}$/.test(year)) {
+    return '';
+  }
+  return `${year}-${month}-${day}`;
+}
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function hasSingleLineControls(value: string) {
@@ -104,7 +114,7 @@ export async function submitStudentRegistration(
   const classId = fieldValue(formData, 'class_id');
   const firstName = fieldValue(formData, 'first_name');
   const lastName = fieldValue(formData, 'last_name');
-  const dateOfBirth = fieldValue(formData, 'date_of_birth');
+  const dateOfBirth = dateOfBirthValue(formData);
   const phoneNumber = fieldValue(formData, 'phone_number');
   const guardianFullName = fieldValue(formData, 'guardian_full_name');
   const guardianPhoneNumber = fieldValue(formData, 'guardian_phone_number');

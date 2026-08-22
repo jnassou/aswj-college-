@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { formatClassTime } from '../../../lib/class-time';
 import { submitStudentRegistration } from './actions';
 import type {
@@ -10,6 +10,20 @@ import type {
 } from './types';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 const INITIAL_STATE: RegistrationActionState = {
   status: 'idle',
@@ -42,6 +56,27 @@ function fieldErrorId(field: RegistrationFieldName) {
   return `${field}-error`;
 }
 
+function dateOfBirthParts(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match
+    ? { year: match[1], month: match[2], day: match[3] }
+    : { year: '', month: '', day: '' };
+}
+
+function isLeapYear(year: number) {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function daysInMonth(month: string, year: string) {
+  const monthNumber = Number(month);
+  if (!monthNumber) return 31;
+  if (monthNumber === 2) {
+    if (!year) return 29;
+    return isLeapYear(Number(year)) ? 29 : 28;
+  }
+  return [4, 6, 9, 11].includes(monthNumber) ? 30 : 31;
+}
+
 export default function RegistrationForm({
   email,
   privacyNoticeVersion,
@@ -63,7 +98,21 @@ export default function RegistrationForm({
     INITIAL_STATE
   );
   const errorSummaryRef = useRef<HTMLDivElement>(null);
+  const initialDateOfBirth = dateOfBirthParts(initialValues.dateOfBirth);
+  const [dateOfBirthDay, setDateOfBirthDay] = useState(initialDateOfBirth.day);
+  const [dateOfBirthMonth, setDateOfBirthMonth] = useState(initialDateOfBirth.month);
+  const [dateOfBirthYear, setDateOfBirthYear] = useState(initialDateOfBirth.year);
   const availableOptions = options.filter((option) => option.available);
+  const currentYear = Number(new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Sydney',
+    year: 'numeric',
+  }).format(new Date()));
+  const yearOptions = Array.from(
+    { length: currentYear - 1900 + 1 },
+    (_, index) => String(currentYear - index)
+  );
+  const maximumDay = daysInMonth(dateOfBirthMonth, dateOfBirthYear);
+  const dayOptions = Array.from({ length: maximumDay }, (_, index) => String(index + 1));
 
   useEffect(() => {
     if (state.status === 'error') errorSummaryRef.current?.focus();
@@ -73,6 +122,20 @@ export default function RegistrationForm({
   const describedBy = (field: RegistrationFieldName, helperId?: string) => {
     const ids = [helperId, errorFor(field) ? fieldErrorId(field) : null].filter(Boolean);
     return ids.length ? ids.join(' ') : undefined;
+  };
+
+  const changeDateOfBirthMonth = (month: string) => {
+    setDateOfBirthMonth(month);
+    if (dateOfBirthDay && Number(dateOfBirthDay) > daysInMonth(month, dateOfBirthYear)) {
+      setDateOfBirthDay('');
+    }
+  };
+
+  const changeDateOfBirthYear = (year: string) => {
+    setDateOfBirthYear(year);
+    if (dateOfBirthDay && Number(dateOfBirthDay) > daysInMonth(dateOfBirthMonth, year)) {
+      setDateOfBirthDay('');
+    }
   };
 
   return (
@@ -172,21 +235,65 @@ export default function RegistrationForm({
         </div>
 
         <div className="form-row">
-          <div className="field">
-            <label htmlFor="date_of_birth">Date of birth</label>
-            <input
-              id="date_of_birth"
-              name="date_of_birth"
-              type="date"
-              autoComplete="bday"
-              defaultValue={initialValues.dateOfBirth}
-              min="1900-01-01"
-              required
-              aria-invalid={Boolean(errorFor('date_of_birth'))}
-              aria-describedby={describedBy('date_of_birth')}
-            />
+          <fieldset className="dob-fieldset">
+            <legend>Date of birth</legend>
+            <div className="dob-fields">
+              <div className="field">
+                <label htmlFor="date_of_birth_day">Day</label>
+                <select
+                  id="date_of_birth_day"
+                  name="date_of_birth_day"
+                  autoComplete="bday-day"
+                  value={dateOfBirthDay}
+                  onChange={(event) => setDateOfBirthDay(event.target.value)}
+                  required
+                  aria-invalid={Boolean(errorFor('date_of_birth'))}
+                  aria-describedby={describedBy('date_of_birth', 'date-of-birth-helper')}
+                >
+                  <option value="" disabled>Day</option>
+                  {dayOptions.map((day) => (
+                    <option key={day} value={day.padStart(2, '0')}>{day}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="date_of_birth_month">Month</label>
+                <select
+                  id="date_of_birth_month"
+                  name="date_of_birth_month"
+                  autoComplete="bday-month"
+                  value={dateOfBirthMonth}
+                  onChange={(event) => changeDateOfBirthMonth(event.target.value)}
+                  required
+                  aria-invalid={Boolean(errorFor('date_of_birth'))}
+                  aria-describedby={describedBy('date_of_birth', 'date-of-birth-helper')}
+                >
+                  <option value="" disabled>Month</option>
+                  {MONTHS.map((month, index) => (
+                    <option key={month} value={String(index + 1).padStart(2, '0')}>{month}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="date_of_birth_year">Year</label>
+                <select
+                  id="date_of_birth_year"
+                  name="date_of_birth_year"
+                  autoComplete="bday-year"
+                  value={dateOfBirthYear}
+                  onChange={(event) => changeDateOfBirthYear(event.target.value)}
+                  required
+                  aria-invalid={Boolean(errorFor('date_of_birth'))}
+                  aria-describedby={describedBy('date_of_birth', 'date-of-birth-helper')}
+                >
+                  <option value="" disabled>Year</option>
+                  {yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                </select>
+              </div>
+            </div>
+            <span id="date-of-birth-helper" className="small">Choose day, month and year.</span>
             {errorFor('date_of_birth') && <span id={fieldErrorId('date_of_birth')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('date_of_birth')}</span>}
-          </div>
+          </fieldset>
           <div className="field">
             <label htmlFor="email_address">Confirmed portal email</label>
             <input id="email_address" value={email} autoComplete="email" readOnly aria-describedby="email-helper" />
