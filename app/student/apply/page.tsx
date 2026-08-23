@@ -68,8 +68,8 @@ export default async function StudentApplyPage() {
   }));
 
   return (
-    <main className="student-portal">
-      <header className="student-header">
+    <main id="main-content" className="student-portal student-application-page" tabIndex={-1}>
+      <header className="student-header student-page-header">
         <div className="student-brand-row">
           <Image
             className="student-logo"
@@ -79,26 +79,27 @@ export default async function StudentApplyPage() {
             height={225}
             priority
           />
-          <div>
+          <div className="student-page-title">
             <div className="student-eyebrow">ASWJ College Student Portal</div>
-            <h1>Class application</h1>
-            <p>{user.email}</p>
+            <h1>Apply for a class</h1>
+            <p className="student-account-email">Signed in as {user.email}</p>
           </div>
         </div>
-        <a className="btn student-signout" href="/student">Back to portal</a>
+        <a className="btn student-signout student-back-link" href="/student">Back to portal</a>
       </header>
 
-      <section className="portal-section">
-        <div className="portal-section-head">
+      <section className="portal-section application-page-section">
+        <div className="portal-section-head application-intro">
           <div>
-            <span className="small">Registration workflow</span>
-            <h2>Apply for an available class</h2>
+            <span className="eyebrow">Registration workflow</span>
+            <h2>Complete your application</h2>
+            <p className="subtitle application-lead">
+              Choose an available class and confirm your details. The application will be
+              submitted as pending for administration to review, and its status will appear
+              in your Student Portal.
+            </p>
           </div>
         </div>
-        <p className="subtitle" style={{ marginBottom: 16, lineHeight: 1.55 }}>
-          Complete this form for the class you want to apply for. Your application will be submitted as pending for
-          administration to review, and its status will appear in your Student Portal.
-        </p>
 
         <RegistrationForm
           email={user.email}

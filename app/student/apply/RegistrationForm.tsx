@@ -31,6 +31,19 @@ const INITIAL_STATE: RegistrationActionState = {
   fieldErrors: {},
 };
 
+const ERROR_FIELD_TARGETS: Record<RegistrationFieldName, string> = {
+  class_id: 'class-heading',
+  first_name: 'first_name',
+  last_name: 'last_name',
+  date_of_birth: 'date_of_birth_day',
+  phone_number: 'phone_number',
+  guardian_full_name: 'guardian_full_name',
+  guardian_phone_number: 'guardian_phone_number',
+  medical_learning_allergy_notes: 'medical_learning_allergy_notes',
+  previous_studies: 'previous_studies',
+  privacy_consent: 'privacy_consent',
+};
+
 function availabilityCopy(reason: string | null) {
   switch (reason) {
     case 'registration_not_open':
@@ -113,6 +126,9 @@ export default function RegistrationForm({
   );
   const maximumDay = daysInMonth(dateOfBirthMonth, dateOfBirthYear);
   const dayOptions = Array.from({ length: maximumDay }, (_, index) => String(index + 1));
+  const fieldErrorEntries = Object.entries(state.fieldErrors).filter(
+    (entry): entry is [RegistrationFieldName, string] => typeof entry[1] === 'string'
+  );
 
   useEffect(() => {
     if (state.status === 'error') errorSummaryRef.current?.focus();
@@ -139,70 +155,104 @@ export default function RegistrationForm({
   };
 
   return (
-    <form action={formAction}>
+    <form className="registration-form" action={formAction}>
       {state.status === 'error' && (
         <div
           ref={errorSummaryRef}
-          className="notice"
+          className="notice error-summary"
           role="alert"
           tabIndex={-1}
-          aria-live="polite"
+          aria-labelledby="application-error-heading"
         >
-          <strong>Application not submitted</strong>
-          {state.message}
+          <h2 id="application-error-heading">Application not submitted</h2>
+          <p>{state.message}</p>
+          {fieldErrorEntries.length > 0 && (
+            <ul>
+              {fieldErrorEntries.map(([field, error]) => (
+                <li key={field}>
+                  <a href={`#${ERROR_FIELD_TARGETS[field]}`}>{error}</a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
-      <section className="card" aria-labelledby="class-heading">
-        <h2 id="class-heading" style={{ marginTop: 0 }}>Choose a class</h2>
-        <div className="field">
-          <label htmlFor="class_id">Class</label>
-          <select
-            id="class_id"
-            name="class_id"
-            defaultValue=""
-            required
-            aria-invalid={Boolean(errorFor('class_id'))}
-            aria-describedby={describedBy('class_id')}
-          >
-            <option value="" disabled>Select an available class</option>
-            {options.map((option) => (
-              <option
-                key={option.classId}
-                value={option.classId}
-                disabled={!option.available}
-              >
-                {[option.className, option.term, optionSchedule(option)].filter(Boolean).join(' — ')}
-                {option.available ? '' : ' — unavailable'}
-              </option>
-            ))}
-          </select>
+      <section className="card registration-section registration-class-section" aria-labelledby="class-heading">
+        <div className="registration-section-heading">
+          <span className="section-number" aria-hidden="true">1</span>
+          <div>
+            <span className="section-kicker">Step 1 of 5</span>
+            <h2 id="class-heading">Choose a class</h2>
+            <p id="class-choice-helper" className="section-description">
+              Select one available class. Its schedule is managed by ASWJ College administration.
+            </p>
+          </div>
+        </div>
+
+        <fieldset
+          className="registration-fieldset"
+          aria-invalid={Boolean(errorFor('class_id'))}
+          aria-describedby={describedBy('class_id', 'class-choice-helper')}
+        >
+          <legend className="sr-only">Available classes</legend>
+          <div className="class-choice-grid">
+            {options.map((option) => {
+              const schedule = optionSchedule(option);
+              const inputId = `class-choice-${option.classId}`;
+              return (
+                <label
+                  className={`class-choice ${option.available ? '' : 'class-choice-unavailable'}`}
+                  htmlFor={inputId}
+                  key={option.classId}
+                >
+                  <input
+                    className="class-choice-input"
+                    id={inputId}
+                    name="class_id"
+                    type="radio"
+                    value={option.classId}
+                    disabled={!option.available}
+                    required={option.available}
+                    aria-describedby={describedBy('class_id', 'class-choice-helper')}
+                  />
+                  <span className="class-choice-indicator" aria-hidden="true" />
+                  <span className="class-choice-copy">
+                    <span className="class-choice-title-row">
+                      <strong>{option.className}</strong>
+                      <span className="class-choice-status">
+                        {option.available ? 'Available' : 'Unavailable'}
+                      </span>
+                    </span>
+                    {option.term && <span className="class-choice-term">{option.term}</span>}
+                    {schedule && <span className="class-choice-schedule">{schedule}</span>}
+                    {!option.available && (
+                      <span className="class-choice-reason">
+                        {availabilityCopy(option.availabilityReason)}
+                      </span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
           {errorFor('class_id') && (
-            <span id={fieldErrorId('class_id')} className="small" style={{ color: 'var(--danger)' }}>
+            <span id={fieldErrorId('class_id')} className="field-error">
               {errorFor('class_id')}
             </span>
           )}
-        </div>
-
-        <div style={{ display: 'grid', gap: 10 }}>
-          {options.map((option) => (
-            <article
-              key={option.classId}
-              style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}
-            >
-              <strong>{option.className}</strong>
-              {option.term && <div className="small" style={{ marginTop: 4 }}>{option.term}</div>}
-              {optionSchedule(option) && <div className="small" style={{ marginTop: 3 }}>{optionSchedule(option)}</div>}
-              {!option.available && (
-                <div className="small" style={{ marginTop: 4 }}>{availabilityCopy(option.availabilityReason)}</div>
-              )}
-            </article>
-          ))}
-        </div>
+        </fieldset>
       </section>
 
-      <section className="card" style={{ marginTop: 16 }} aria-labelledby="student-details-heading">
-        <h2 id="student-details-heading" style={{ marginTop: 0 }}>Student details</h2>
+      <section className="card registration-section" aria-labelledby="student-details-heading">
+        <div className="registration-section-heading">
+          <span className="section-number" aria-hidden="true">2</span>
+          <div>
+            <span className="section-kicker">Step 2 of 5</span>
+            <h2 id="student-details-heading">Student details</h2>
+            <p className="section-description">Confirm the details linked to this application.</p>
+          </div>
+        </div>
         <div className="form-row">
           <div className="field">
             <label htmlFor="first_name">First name</label>
@@ -216,7 +266,7 @@ export default function RegistrationForm({
               aria-invalid={Boolean(errorFor('first_name'))}
               aria-describedby={describedBy('first_name')}
             />
-            {errorFor('first_name') && <span id={fieldErrorId('first_name')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('first_name')}</span>}
+            {errorFor('first_name') && <span id={fieldErrorId('first_name')} className="field-error">{errorFor('first_name')}</span>}
           </div>
           <div className="field">
             <label htmlFor="last_name">Last name</label>
@@ -230,7 +280,7 @@ export default function RegistrationForm({
               aria-invalid={Boolean(errorFor('last_name'))}
               aria-describedby={describedBy('last_name')}
             />
-            {errorFor('last_name') && <span id={fieldErrorId('last_name')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('last_name')}</span>}
+            {errorFor('last_name') && <span id={fieldErrorId('last_name')} className="field-error">{errorFor('last_name')}</span>}
           </div>
         </div>
 
@@ -291,13 +341,13 @@ export default function RegistrationForm({
                 </select>
               </div>
             </div>
-            <span id="date-of-birth-helper" className="small">Choose day, month and year.</span>
-            {errorFor('date_of_birth') && <span id={fieldErrorId('date_of_birth')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('date_of_birth')}</span>}
+            <span id="date-of-birth-helper" className="field-helper">Choose day, month and year.</span>
+            {errorFor('date_of_birth') && <span id={fieldErrorId('date_of_birth')} className="field-error">{errorFor('date_of_birth')}</span>}
           </fieldset>
           <div className="field">
             <label htmlFor="email_address">Confirmed portal email</label>
-            <input id="email_address" value={email} autoComplete="email" readOnly aria-describedby="email-helper" />
-            <span id="email-helper" className="small">Applications are linked to this signed-in account.</span>
+            <input className="read-only-field" id="email_address" value={email} autoComplete="email" readOnly aria-describedby="email-helper" />
+            <span id="email-helper" className="field-helper">Applications are linked to this signed-in account.</span>
           </div>
         </div>
 
@@ -315,19 +365,25 @@ export default function RegistrationForm({
             aria-invalid={Boolean(errorFor('phone_number'))}
             aria-describedby={describedBy('phone_number', 'phone-helper')}
           />
-          <span id="phone-helper" className="small">Include the country code if the number is outside Australia.</span>
-          {errorFor('phone_number') && <span id={fieldErrorId('phone_number')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('phone_number')}</span>}
+          <span id="phone-helper" className="field-helper">Include the country code if the number is outside Australia.</span>
+          {errorFor('phone_number') && <span id={fieldErrorId('phone_number')} className="field-error">{errorFor('phone_number')}</span>}
         </div>
 
-        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
-          <input name="whatsapp_opt_in" type="checkbox" style={{ marginTop: 2 }} />
+        <label className="checkbox-field" htmlFor="whatsapp_opt_in">
+          <input id="whatsapp_opt_in" name="whatsapp_opt_in" type="checkbox" />
           <span>I agree to this phone number being added to the class WhatsApp group if my application is accepted.</span>
         </label>
       </section>
 
-      <section className="card" style={{ marginTop: 16 }} aria-labelledby="guardian-heading">
-        <h2 id="guardian-heading" style={{ marginTop: 0 }}>Guardian details</h2>
-        <p className="small">Optional. If these details apply, complete both fields.</p>
+      <section className="card registration-section" aria-labelledby="guardian-heading">
+        <div className="registration-section-heading">
+          <span className="section-number" aria-hidden="true">3</span>
+          <div>
+            <span className="section-kicker">Step 3 of 5 · Optional</span>
+            <h2 id="guardian-heading">Guardian details</h2>
+            <p className="section-description">If these details apply, complete both fields.</p>
+          </div>
+        </div>
         <div className="form-row">
           <div className="field">
             <label htmlFor="guardian_full_name">Guardian full name</label>
@@ -339,7 +395,7 @@ export default function RegistrationForm({
               aria-invalid={Boolean(errorFor('guardian_full_name'))}
               aria-describedby={describedBy('guardian_full_name')}
             />
-            {errorFor('guardian_full_name') && <span id={fieldErrorId('guardian_full_name')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('guardian_full_name')}</span>}
+            {errorFor('guardian_full_name') && <span id={fieldErrorId('guardian_full_name')} className="field-error">{errorFor('guardian_full_name')}</span>}
           </div>
           <div className="field">
             <label htmlFor="guardian_phone_number">Guardian phone number</label>
@@ -352,13 +408,20 @@ export default function RegistrationForm({
               aria-invalid={Boolean(errorFor('guardian_phone_number'))}
               aria-describedby={describedBy('guardian_phone_number')}
             />
-            {errorFor('guardian_phone_number') && <span id={fieldErrorId('guardian_phone_number')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('guardian_phone_number')}</span>}
+            {errorFor('guardian_phone_number') && <span id={fieldErrorId('guardian_phone_number')} className="field-error">{errorFor('guardian_phone_number')}</span>}
           </div>
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 16 }} aria-labelledby="support-heading">
-        <h2 id="support-heading" style={{ marginTop: 0 }}>Learning and wellbeing</h2>
+      <section className="card registration-section" aria-labelledby="support-heading">
+        <div className="registration-section-heading">
+          <span className="section-number" aria-hidden="true">4</span>
+          <div>
+            <span className="section-kicker">Step 4 of 5 · Optional</span>
+            <h2 id="support-heading">Learning and wellbeing</h2>
+            <p className="section-description">Share only information relevant to safe participation and learning support.</p>
+          </div>
+        </div>
         <div className="field">
           <label htmlFor="medical_learning_allergy_notes">Medical conditions, learning considerations or allergies</label>
           <textarea
@@ -368,8 +431,8 @@ export default function RegistrationForm({
             aria-describedby={describedBy('medical_learning_allergy_notes', 'wellbeing-helper')}
             aria-invalid={Boolean(errorFor('medical_learning_allergy_notes'))}
           />
-          <span id="wellbeing-helper" className="small">Optional. Share only information relevant to safe participation and learning support.</span>
-          {errorFor('medical_learning_allergy_notes') && <span id={fieldErrorId('medical_learning_allergy_notes')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('medical_learning_allergy_notes')}</span>}
+          <span id="wellbeing-helper" className="field-helper">Optional, up to 2,000 characters.</span>
+          {errorFor('medical_learning_allergy_notes') && <span id={fieldErrorId('medical_learning_allergy_notes')} className="field-error">{errorFor('medical_learning_allergy_notes')}</span>}
         </div>
         <div className="field">
           <label htmlFor="previous_studies">Previous studies</label>
@@ -380,33 +443,40 @@ export default function RegistrationForm({
             aria-describedby={describedBy('previous_studies', 'studies-helper')}
             aria-invalid={Boolean(errorFor('previous_studies'))}
           />
-          <span id="studies-helper" className="small">Optional. List studies that may help the College assess the application.</span>
-          {errorFor('previous_studies') && <span id={fieldErrorId('previous_studies')} className="small" style={{ color: 'var(--danger)' }}>{errorFor('previous_studies')}</span>}
+          <span id="studies-helper" className="field-helper">Optional. List studies that may help the College assess the application.</span>
+          {errorFor('previous_studies') && <span id={fieldErrorId('previous_studies')} className="field-error">{errorFor('previous_studies')}</span>}
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 16 }} aria-labelledby="privacy-heading">
-        <h2 id="privacy-heading" style={{ marginTop: 0 }}>Privacy notice</h2>
-        <p style={{ fontSize: 13, lineHeight: 1.55 }}>
+      <section className="card registration-section" aria-labelledby="privacy-heading">
+        <div className="registration-section-heading">
+          <span className="section-number" aria-hidden="true">5</span>
+          <div>
+            <span className="section-kicker">Step 5 of 5</span>
+            <h2 id="privacy-heading">Privacy notice</h2>
+            <p className="section-description">Review how your information will be used before submitting.</p>
+          </div>
+        </div>
+        <p className="privacy-copy">
           ASWJ College will use these details to assess and manage the application,
           contact you about the selected class, and support student wellbeing. Optional
           medical, learning and allergy information is available only to authorised staff
           who need it for registration or student support. Contact administration if your
           details need to be corrected.
         </p>
-        <p className="small">Notice version {privacyNoticeVersion}</p>
-        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
+        <p className="privacy-version">Notice version {privacyNoticeVersion}</p>
+        <label className="checkbox-field privacy-consent" htmlFor="privacy_consent">
           <input
+            id="privacy_consent"
             name="privacy_consent"
             type="checkbox"
             required
             aria-invalid={Boolean(errorFor('privacy_consent'))}
             aria-describedby={describedBy('privacy_consent')}
-            style={{ marginTop: 2 }}
           />
           <span>I have read this notice and agree to my details being used for registration and student support.</span>
         </label>
-        {errorFor('privacy_consent') && <span id={fieldErrorId('privacy_consent')} className="small" style={{ color: 'var(--danger)', display: 'block', marginTop: 8 }}>{errorFor('privacy_consent')}</span>}
+        {errorFor('privacy_consent') && <span id={fieldErrorId('privacy_consent')} className="field-error consent-error">{errorFor('privacy_consent')}</span>}
       </section>
 
       {availableOptions.length === 0 && (
@@ -420,9 +490,9 @@ export default function RegistrationForm({
         </div>
       )}
 
-      <div className="actions" style={{ marginTop: 20 }}>
+      <div className="actions form-actions">
         <button
-          className="btn btn-primary"
+          className="btn btn-primary form-submit"
           type="submit"
           disabled={pending || availableOptions.length === 0}
         >

@@ -8,6 +8,7 @@ import {
   reprocessFormsSubmission,
   updateFormsCourseMapping,
 } from './actions';
+import { useAdminDialog } from '../useAdminDialog';
 
 export type FormsSubmissionRow = {
   id: string;
@@ -219,10 +220,16 @@ export default function FormsImportsClient({
       }
     });
   };
+  const dialogRef = useAdminDialog<HTMLDivElement>({
+    open: selected !== null,
+    onClose: () => {
+      if (!pending) setSelected(null);
+    },
+  });
 
   return (
     <>
-      {error && !selected && <div className="notice">{error}</div>}
+      {error && !selected && <div className="notice" role="alert">{error}</div>}
 
       <section className="section">
         <div className="section-head">
@@ -234,7 +241,12 @@ export default function FormsImportsClient({
           </div>
           <a className="btn btn-outline" href="/admin/classes">Manage classes</a>
         </div>
-        <div className="table-wrap">
+        <div
+          className="table-wrap"
+          role="region"
+          aria-label="Legacy Microsoft Forms course mappings"
+          tabIndex={0}
+        >
           <table>
             <thead><tr><th>Microsoft Forms course</th><th>ASWJ class</th><th>Status</th></tr></thead>
             <tbody>
@@ -303,8 +315,9 @@ export default function FormsImportsClient({
             <div className="card" style={{ marginBottom: 16 }}>
               <div className="form-row" style={{ alignItems: 'end' }}>
                 <div className="field" style={{ marginBottom: 0 }}>
-                  <label>Search loaded imports</label>
+                  <label htmlFor="legacy-forms-import-search">Search loaded imports</label>
                   <input
+                    id="legacy-forms-import-search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Student, email, phone, course or response ID"
@@ -316,11 +329,13 @@ export default function FormsImportsClient({
               </div>
             </div>
 
-            <div className="filters">
+            <div className="filters" role="group" aria-label="Legacy Forms import status filters">
               {FILTERS.map((item) => (
                 <button
                   key={item}
                   className={`filter ${filter === item ? 'active' : ''}`}
+                  type="button"
+                  aria-pressed={filter === item}
                   onClick={() => setFilter(item)}
                 >
                   {label(item)} ({counts[item] ?? 0})
@@ -328,10 +343,15 @@ export default function FormsImportsClient({
               ))}
             </div>
 
-            <div className="table-wrap">
+            <div
+              className="table-wrap"
+              role="region"
+              aria-label="Legacy Microsoft Forms imports"
+              tabIndex={0}
+            >
               <table>
                 <thead>
-                  <tr><th>Student</th><th>Requested course</th><th>Completed</th><th>Status</th><th>Attempts</th><th></th></tr>
+                  <tr><th>Student</th><th>Requested course</th><th>Completed</th><th>Status</th><th>Attempts</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {visible.length === 0 ? (
@@ -372,14 +392,19 @@ export default function FormsImportsClient({
       {legacyAvailable && selected && (
         <div className="modal-backdrop" onMouseDown={() => !pending && setSelected(null)}>
           <div
+            ref={dialogRef}
             className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="forms-import-review-title"
+            tabIndex={-1}
             onMouseDown={(event) => event.stopPropagation()}
             style={{ width: 'min(760px,100%)', maxHeight: '92vh', overflow: 'auto' }}
           >
-            <h3>{studentName(selected)}</h3>
+            <h3 id="forms-import-review-title">{studentName(selected)}</h3>
             <p className="subtitle">Response {selected.externalResponseId}</p>
 
-            {error && <div className="notice" style={{ marginTop: 16 }}>{error}</div>}
+            {error && <div className="notice" role="alert" style={{ marginTop: 16 }}>{error}</div>}
             {!detail && !error && (
               <div className="card" style={{ marginTop: 18 }}>
                 Loading protected submission details…

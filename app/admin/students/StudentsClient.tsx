@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { suspendEnrolment, reinstateEnrolment } from '../actions/attendance-actions';
 import { updateStudentProfile } from '../actions/student-actions';
+import { useAdminDialog } from '../useAdminDialog';
 
 export type StudentEnrolmentRow = {
   id: string;
@@ -101,6 +102,18 @@ export default function StudentsClient({ rows }: { rows: StudentAdminRow[] }) {
       }
     });
   };
+  const profileDialogRef = useAdminDialog<HTMLDivElement>({
+    open: selected !== null,
+    onClose: () => {
+      if (!pending) setSelected(null);
+    },
+  });
+  const suspensionDialogRef = useAdminDialog<HTMLDivElement>({
+    open: suspendTarget !== null,
+    onClose: () => {
+      if (!pending) setSuspendTarget(null);
+    },
+  });
 
   return (
     <>
@@ -113,8 +126,9 @@ export default function StudentsClient({ rows }: { rows: StudentAdminRow[] }) {
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="field" style={{ marginBottom: 0, maxWidth: 520 }}>
-          <label>Search students</label>
+          <label htmlFor="admin-student-search">Search students</label>
           <input
+            id="admin-student-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Name, student ID, mobile, email or class"
@@ -122,7 +136,7 @@ export default function StudentsClient({ rows }: { rows: StudentAdminRow[] }) {
         </div>
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap" role="region" aria-label="Students" tabIndex={0}>
         <table>
           <thead>
             <tr>
@@ -131,7 +145,7 @@ export default function StudentsClient({ rows }: { rows: StudentAdminRow[] }) {
               <th>Current classes</th>
               <th>Attendance</th>
               <th>Status</th>
-              <th></th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -156,30 +170,39 @@ export default function StudentsClient({ rows }: { rows: StudentAdminRow[] }) {
 
       {selected && (
         <div className="modal-backdrop" onMouseDown={() => !pending && setSelected(null)}>
-          <div className="modal" onMouseDown={(e) => e.stopPropagation()} style={{ width: 'min(760px,100%)', maxHeight: '92vh', overflow: 'auto' }}>
+          <div
+            ref={profileDialogRef}
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="student-profile-title"
+            tabIndex={-1}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{ width: 'min(760px,100%)', maxHeight: '92vh', overflow: 'auto' }}
+          >
             <div className="section-head">
               <div>
-                <h3>{selected.name}</h3>
+                <h3 id="student-profile-title">{selected.name}</h3>
                 <p className="subtitle">{selected.email || 'No email'}</p>
               </div>
               <button className="btn btn-outline" onClick={() => setEditing((v) => !v)}>{editing ? 'Cancel edit' : 'Edit profile'}</button>
             </div>
 
-            {error && <div className="notice">{error}</div>}
+            {error && <div className="notice" role="alert">{error}</div>}
 
             {editing ? (
               <form action={saveProfile}>
                 <div className="form-row">
-                  <div className="field"><label>First name</label><input name="first_name" required defaultValue={selected.firstName}/></div>
-                  <div className="field"><label>Last name</label><input name="last_name" required defaultValue={selected.lastName}/></div>
+                  <div className="field"><label htmlFor="student-first-name">First name</label><input id="student-first-name" name="first_name" required defaultValue={selected.firstName}/></div>
+                  <div className="field"><label htmlFor="student-last-name">Last name</label><input id="student-last-name" name="last_name" required defaultValue={selected.lastName}/></div>
                 </div>
                 <div className="form-row">
-                  <div className="field"><label>Mobile</label><input name="mobile" defaultValue={selected.mobile}/></div>
-                  <div className="field"><label>Date of birth</label><input name="date_of_birth" type="date" defaultValue={selected.dateOfBirth ?? ''}/></div>
+                  <div className="field"><label htmlFor="student-mobile">Mobile</label><input id="student-mobile" name="mobile" defaultValue={selected.mobile}/></div>
+                  <div className="field"><label htmlFor="student-date-of-birth">Date of birth</label><input id="student-date-of-birth" name="date_of_birth" type="date" defaultValue={selected.dateOfBirth ?? ''}/></div>
                 </div>
                 <div className="form-row">
-                  <div className="field"><label>Emergency contact</label><input name="emergency_contact_name" defaultValue={selected.emergencyContactName}/></div>
-                  <div className="field"><label>Emergency mobile</label><input name="emergency_contact_mobile" defaultValue={selected.emergencyContactMobile}/></div>
+                  <div className="field"><label htmlFor="student-emergency-contact">Emergency contact</label><input id="student-emergency-contact" name="emergency_contact_name" defaultValue={selected.emergencyContactName}/></div>
+                  <div className="field"><label htmlFor="student-emergency-mobile">Emergency mobile</label><input id="student-emergency-mobile" name="emergency_contact_mobile" defaultValue={selected.emergencyContactMobile}/></div>
                 </div>
                 <div className="modal-footer">
                   <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? 'Saving…' : 'Save profile'}</button>
@@ -236,18 +259,26 @@ export default function StudentsClient({ rows }: { rows: StudentAdminRow[] }) {
       )}
 
       {suspendTarget && (
-        <div className="modal-backdrop" style={{ zIndex: 20 }} onMouseDown={() => !pending && setSuspendTarget(null)}>
-          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
-            <h3>Suspend enrolment</h3>
+        <div className="modal-backdrop modal-backdrop-raised" onMouseDown={() => !pending && setSuspendTarget(null)}>
+          <div
+            ref={suspensionDialogRef}
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="student-suspension-title"
+            tabIndex={-1}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <h3 id="student-suspension-title">Suspend enrolment</h3>
             <p className="subtitle">{suspendTarget.className}</p>
-            {error && <div className="notice" style={{ marginTop: 16 }}>{error}</div>}
+            {error && <div className="notice" role="alert" style={{ marginTop: 16 }}>{error}</div>}
             <div className="field" style={{ marginTop: 16 }}>
-              <label>Reason</label>
-              <input value={reason} onChange={(e) => setReason(e.target.value)} />
+              <label htmlFor="student-suspension-reason">Reason</label>
+              <input id="student-suspension-reason" value={reason} onChange={(e) => setReason(e.target.value)} />
             </div>
             <div className="field">
-              <label>Admin note</label>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional internal note" />
+              <label htmlFor="student-suspension-note">Admin note</label>
+              <textarea id="student-suspension-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional internal note" />
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setSuspendTarget(null)} disabled={pending}>Cancel</button>

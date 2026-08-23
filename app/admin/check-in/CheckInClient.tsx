@@ -167,8 +167,8 @@ export default function CheckInClient({ classes, today }: { classes: CheckInClas
       <section className="card">
         <div className="form-row">
           <div className="field">
-            <label>Select class</label>
-            <select value={classId} onChange={(e) => { stopScanner(); setClassId(e.target.value); setMessage(''); setError(''); }}>
+            <label htmlFor="check-in-class">Select class</label>
+            <select id="check-in-class" value={classId} onChange={(e) => { stopScanner(); setClassId(e.target.value); setMessage(''); setError(''); }}>
               {classes.length === 0 && <option value="">No active classes</option>}
               {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -184,8 +184,8 @@ export default function CheckInClient({ classes, today }: { classes: CheckInClas
           </div>
         </div>
 
-        {error && <div className="notice">{error}</div>}
-        {message && <div className="card" style={{ background: 'var(--brand-soft)', borderColor: 'var(--brand)', marginBottom: 16 }}><strong>{message}</strong></div>}
+        {error && <div className="notice" role="alert">{error}</div>}
+        {message && <div className="card" role="status" style={{ background: 'var(--brand-soft)', borderColor: 'var(--brand)', marginBottom: 16 }}><strong>{message}</strong></div>}
 
         {selected?.sessionCancelled ? (
           <div className="notice"><strong>Session cancelled</strong>Attendance cannot be recorded for this class today.</div>
@@ -204,9 +204,9 @@ export default function CheckInClient({ classes, today }: { classes: CheckInClas
             </div>
 
             <div className="field" style={{ maxWidth:560, margin:'18px auto 0' }}>
-              <label>Manual QR token fallback</label>
+              <label htmlFor="manual-qr-token">Manual QR token fallback</label>
               <div className="actions">
-                <input style={{ flex:1 }} value={manualToken} onChange={(e) => setManualToken(e.target.value)} placeholder="Paste or type QR token" />
+                <input id="manual-qr-token" style={{ flex:1 }} value={manualToken} onChange={(e) => setManualToken(e.target.value)} placeholder="Paste or type QR token" />
                 <button className="btn btn-primary" disabled={!manualToken.trim() || pending} onClick={() => processToken(manualToken)}>Check in</button>
               </div>
               <span className="small">Use this if camera scanning is unavailable.</span>
@@ -225,7 +225,7 @@ export default function CheckInClient({ classes, today }: { classes: CheckInClas
               </button>
             )}
           </div>
-          <div className="table-wrap">
+          <div className="table-wrap" role="region" aria-label="Today's class roll" tabIndex={0}>
             <table>
               <thead><tr><th>Student</th><th>Enrolment</th><th>Attendance</th><th>Manual action</th></tr></thead>
               <tbody>

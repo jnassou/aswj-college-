@@ -9,6 +9,7 @@ import {
   DEFAULT_CLASS_START_TIME,
   formatClassTime,
 } from '../../../lib/class-time';
+import { useAdminDialog } from '../useAdminDialog';
 
 export type ClassRow = {
   id: string;
@@ -129,6 +130,10 @@ export default function ClassesClient({
     setDuplicateSource(null);
     setError('');
   };
+  const dialogRef = useAdminDialog<HTMLDivElement>({
+    open: creating || selected !== null,
+    onClose: closeModal,
+  });
 
   const save = (formData: FormData) => {
     setError('');
@@ -172,16 +177,26 @@ export default function ClassesClient({
         </button>
       </div>
 
-      <div className="filters">
-        <button className={`filter ${!showArchived ? 'active' : ''}`} onClick={() => setShowArchived(false)}>
+      <div className="filters" role="group" aria-label="Class visibility filters">
+        <button
+          className={`filter ${!showArchived ? 'active' : ''}`}
+          type="button"
+          aria-pressed={!showArchived}
+          onClick={() => setShowArchived(false)}
+        >
           Active
         </button>
-        <button className={`filter ${showArchived ? 'active' : ''}`} onClick={() => setShowArchived(true)}>
+        <button
+          className={`filter ${showArchived ? 'active' : ''}`}
+          type="button"
+          aria-pressed={showArchived}
+          onClick={() => setShowArchived(true)}
+        >
           All classes
         </button>
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap" role="region" aria-label="Classes" tabIndex={0}>
         <table>
           <thead>
             <tr>
@@ -230,19 +245,30 @@ export default function ClassesClient({
 
       {(creating || selected) && (
         <div className="modal-backdrop" onMouseDown={closeModal}>
-          <div className="modal" onMouseDown={(e) => e.stopPropagation()} style={{maxHeight:'90vh', overflow:'auto'}}>
-            <h3>{selected ? 'Edit class' : duplicateSource ? 'Duplicate class' : 'Create class'}</h3>
-            <p className="subtitle">
+          <div
+            ref={dialogRef}
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="class-form-title"
+            aria-describedby="class-form-description"
+            tabIndex={-1}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{maxHeight:'90vh', overflow:'auto'}}
+          >
+            <h3 id="class-form-title">{selected ? 'Edit class' : duplicateSource ? 'Duplicate class' : 'Create class'}</h3>
+            <p className="subtitle" id="class-form-description">
               {duplicateSource
                 ? 'Review the copied settings and change the class name. Student Portal applications start switched off.'
                 : 'These settings will drive registration, enrolment and attendance.'}
             </p>
-            {error && <div className="notice" style={{marginTop:16}}>{error}</div>}
+            {error && <div className="notice" role="alert" style={{marginTop:16}}>{error}</div>}
 
             <form action={save} style={{marginTop:18}}>
               <div className="field">
-                <label>Class name</label>
+                <label htmlFor="class-name">Class name</label>
                 <input
+                  id="class-name"
                   name="name"
                   required
                   defaultValue={duplicateSource ? `${duplicateSource.name} copy` : selected?.name ?? ''}
@@ -251,18 +277,19 @@ export default function ClassesClient({
 
               <div className="form-row">
                 <div className="field">
-                  <label>Term</label>
-                  <input name="term" placeholder="e.g. Term 3, 2026" defaultValue={formSource?.term ?? ''} />
+                  <label htmlFor="class-term">Term</label>
+                  <input id="class-term" name="term" placeholder="e.g. Term 3, 2026" defaultValue={formSource?.term ?? ''} />
                 </div>
                 <div className="field">
-                  <label>Location</label>
-                  <input name="location" placeholder="e.g. Revesby" defaultValue={formSource?.location ?? ''} />
+                  <label htmlFor="class-location">Location</label>
+                  <input id="class-location" name="location" placeholder="e.g. Revesby" defaultValue={formSource?.location ?? ''} />
                 </div>
               </div>
 
               <div className="field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <label htmlFor="class-registration-enabled" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input
+                    id="class-registration-enabled"
                     name="registration_enabled"
                     type="checkbox"
                     defaultChecked={selected?.registration_enabled ?? false}
@@ -277,36 +304,36 @@ export default function ClassesClient({
 
               <div className="form-row">
                 <div className="field">
-                  <label>Teacher</label>
-                  <select name="teacher_id" defaultValue={formSource?.teacher_id ?? ''}>
+                  <label htmlFor="class-teacher">Teacher</label>
+                  <select id="class-teacher" name="teacher_id" defaultValue={formSource?.teacher_id ?? ''}>
                     <option value="">Unassigned</option>
                     {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Capacity</label>
-                  <input name="capacity" type="number" min="1" required defaultValue={formSource?.capacity ?? 30} />
+                  <label htmlFor="class-capacity">Capacity</label>
+                  <input id="class-capacity" name="capacity" type="number" min="1" required defaultValue={formSource?.capacity ?? 30} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="field">
-                  <label>Day</label>
-                  <select name="day_of_week" defaultValue={formSource?.day_of_week ?? ''}>
+                  <label htmlFor="class-day">Day</label>
+                  <select id="class-day" name="day_of_week" defaultValue={formSource?.day_of_week ?? ''}>
                     <option value="">Not set</option>
                     {DAYS.map((day, index) => <option key={day} value={index}>{day}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Consecutive absence threshold</label>
-                  <input name="absence_threshold" type="number" min="1" required defaultValue={formSource?.absence_threshold ?? 3} />
+                  <label htmlFor="class-absence-threshold">Consecutive absence threshold</label>
+                  <input id="class-absence-threshold" name="absence_threshold" type="number" min="1" required defaultValue={formSource?.absence_threshold ?? 3} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="field">
-                  <label>Start time</label>
-                  <select name="start_time" defaultValue={startTimeValue}>
+                  <label htmlFor="class-start-time">Start time</label>
+                  <select id="class-start-time" name="start_time" defaultValue={startTimeValue}>
                     <option value="">Not set</option>
                     {timeOptions(startTimeValue).map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -314,8 +341,8 @@ export default function ClassesClient({
                   </select>
                 </div>
                 <div className="field">
-                  <label>End time</label>
-                  <select name="end_time" defaultValue={endTimeValue}>
+                  <label htmlFor="class-end-time">End time</label>
+                  <select id="class-end-time" name="end_time" defaultValue={endTimeValue}>
                     <option value="">Not set</option>
                     {timeOptions(endTimeValue).map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -326,23 +353,23 @@ export default function ClassesClient({
 
               <div className="form-row">
                 <div className="field">
-                  <label>Class starts</label>
-                  <input name="starts_on" type="date" defaultValue={formSource?.starts_on ?? ''} />
+                  <label htmlFor="class-starts-on">Class starts</label>
+                  <input id="class-starts-on" name="starts_on" type="date" defaultValue={formSource?.starts_on ?? ''} />
                 </div>
                 <div className="field">
-                  <label>Class ends</label>
-                  <input name="ends_on" type="date" defaultValue={formSource?.ends_on ?? ''} />
+                  <label htmlFor="class-ends-on">Class ends</label>
+                  <input id="class-ends-on" name="ends_on" type="date" defaultValue={formSource?.ends_on ?? ''} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="field">
-                  <label>Registration opens</label>
-                  <input name="registration_opens_at" type="datetime-local" defaultValue={localDateTime(formSource?.registration_opens_at ?? null)} />
+                  <label htmlFor="class-registration-opens">Registration opens</label>
+                  <input id="class-registration-opens" name="registration_opens_at" type="datetime-local" defaultValue={localDateTime(formSource?.registration_opens_at ?? null)} />
                 </div>
                 <div className="field">
-                  <label>Registration closes</label>
-                  <input name="registration_closes_at" type="datetime-local" defaultValue={localDateTime(formSource?.registration_closes_at ?? null)} />
+                  <label htmlFor="class-registration-closes">Registration closes</label>
+                  <input id="class-registration-closes" name="registration_closes_at" type="datetime-local" defaultValue={localDateTime(formSource?.registration_closes_at ?? null)} />
                 </div>
               </div>
 

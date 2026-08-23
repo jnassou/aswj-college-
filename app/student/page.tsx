@@ -228,7 +228,7 @@ export default async function StudentPortal({
   ).length;
 
   return (
-    <main className="student-portal">
+    <main id="main-content" className="student-portal" tabIndex={-1}>
       <header className="student-header">
         <div className="student-brand-row">
           <Image

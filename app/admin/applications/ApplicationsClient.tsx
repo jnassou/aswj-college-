@@ -8,6 +8,7 @@ import {
   decideApplication,
   getApplicationRegistrationDetails,
 } from '../actions/application-actions';
+import { useAdminDialog } from '../useAdminDialog';
 
 export type ApplicationAdminRow = {
   id: string;
@@ -124,6 +125,10 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
     setDetailsLoading(false);
     setDetailsError('');
   };
+  const dialogRef = useAdminDialog<HTMLDivElement>({
+    open: selected !== null,
+    onClose: close,
+  });
 
   const decide = (decision: ApplicationDecision) => {
     if (!selected) return;
@@ -146,8 +151,9 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="form-row" style={{ alignItems: 'end' }}>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Search applications</label>
+            <label htmlFor="admin-application-search">Search applications</label>
             <input
+              id="admin-application-search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Name, email, mobile, class or response ID"
@@ -159,11 +165,13 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
         </div>
       </div>
 
-      <div className="filters">
+      <div className="filters" role="group" aria-label="Application status filters">
         {FILTERS.map((item) => (
           <button
             key={item}
             className={`filter ${filter === item ? 'active' : ''}`}
+            type="button"
+            aria-pressed={filter === item}
             onClick={() => setFilter(item)}
           >
             {statusLabel(item)} ({counts[item] ?? 0})
@@ -171,7 +179,12 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
         ))}
       </div>
 
-      <div className="table-wrap">
+      <div
+        className="table-wrap"
+        role="region"
+        aria-label="Applications"
+        tabIndex={0}
+      >
         <table>
           <thead>
             <tr>
@@ -180,7 +193,7 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
               <th>Submitted</th>
               <th>Status</th>
               <th>Class places</th>
-              <th></th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -212,11 +225,20 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
 
       {selected && (
         <div className="modal-backdrop" onMouseDown={close}>
-          <div className="modal" onMouseDown={(event) => event.stopPropagation()} style={{ width: 'min(680px,100%)', maxHeight: '92vh', overflow: 'auto' }}>
-            <h3>{selected.name}</h3>
+          <div
+            ref={dialogRef}
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="application-review-title"
+            tabIndex={-1}
+            onMouseDown={(event) => event.stopPropagation()}
+            style={{ width: 'min(680px,100%)', maxHeight: '92vh', overflow: 'auto' }}
+          >
+            <h3 id="application-review-title">{selected.name}</h3>
             <p className="subtitle">{selected.className}</p>
 
-            {error && <div className="notice" style={{ marginTop: 16 }}>{error}</div>}
+            {error && <div className="notice" role="alert" style={{ marginTop: 16 }}>{error}</div>}
 
             <div className="portal-grid" style={{ marginTop: 18 }}>
               <div className="card">
@@ -264,8 +286,9 @@ export default function ApplicationsClient({ rows }: { rows: ApplicationAdminRow
             </div>
 
             <div className="field" style={{ marginTop: 18 }}>
-              <label>Admin notes</label>
+              <label htmlFor="application-admin-notes">Admin notes</label>
               <textarea
+                id="application-admin-notes"
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="Internal review notes"

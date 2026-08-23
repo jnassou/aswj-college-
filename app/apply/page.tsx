@@ -20,57 +20,94 @@ export default async function ApplyLandingPage() {
   const portalHref = ['admin', 'super_admin'].includes(role) ? '/admin' : '/student';
 
   return (
-    <main className="login-shell">
-      <section className="login-card" style={{ width: 'min(760px, 100%)' }}>
-        <Image
-          className="login-logo"
-          src="/aswj-logo.png"
-          alt="ASWJ Islamic College"
-          width={650}
-          height={390}
-          priority
-        />
-
-        <span className="small">ASWJ College registration</span>
-        <h1 style={{ marginBottom: 8 }}>Apply for a class</h1>
-        <p className="subtitle" style={{ lineHeight: 1.55 }}>
-          Class applications now begin in the Student Portal. Sign in with your confirmed
-          email address, or create a student account before completing the application form.
-        </p>
-
-        <div className="card" style={{ marginTop: 22 }}>
-          <strong>How it works</strong>
-          <ol style={{ lineHeight: 1.7, paddingLeft: 22, marginBottom: 0 }}>
-            <li>Create or sign in to your Student Portal account.</li>
-            <li>Choose an available class and submit your registration details.</li>
-            <li>Track the pending application and its outcome in the portal.</li>
-          </ol>
-        </div>
-
-        <div className="actions" style={{ marginTop: 22 }}>
-          {isStudent ? (
-            <>
-              <a className="btn btn-primary" href="/student/apply">Continue to application</a>
-              <a className="btn btn-outline" href="/student">Student Portal</a>
-            </>
-          ) : user ? (
-            <a className="btn btn-primary" href={portalHref}>Open your portal</a>
-          ) : (
-            <>
-              <a className="btn btn-primary" href="/login?next=%2Fstudent%2Fapply">Sign in and apply</a>
-              <a className="btn btn-outline" href="/login?mode=signup&amp;next=%2Fstudent%2Fapply">Create student account</a>
-            </>
-          )}
-        </div>
-
-        <section style={{ marginTop: 28 }} aria-labelledby="available-classes-heading">
-          <h2 id="available-classes-heading" style={{ fontSize: 18 }}>Available classes</h2>
-          <p className="small">
-            Current class choices and their confirmed schedules are shown after you sign in.
-            The list is managed directly by ASWJ College administration.
-          </p>
+    <main id="main-content" className="public-shell" tabIndex={-1}>
+      <div className="public-layout">
+        <section className="public-brand-panel" aria-label="ASWJ Islamic College">
+          <div className="public-logo-panel">
+            <Image
+              className="public-logo"
+              src="/aswj-logo.png"
+              alt="ASWJ Islamic College"
+              width={650}
+              height={390}
+              priority
+            />
+          </div>
+          <div className="public-brand-copy">
+            <span className="eyebrow eyebrow-on-dark">Student registration</span>
+            <p className="public-brand-title">A clear path from application to enrolment.</p>
+            <p>
+              Apply securely, follow your application status and keep your class information
+              together in one Student Portal.
+            </p>
+          </div>
         </section>
-      </section>
+
+        <section className="public-content-panel" aria-labelledby="application-heading">
+          <div className="public-intro">
+            <span className="eyebrow">ASWJ College registration</span>
+            <h1 id="application-heading">Apply for a class</h1>
+            <p className="subtitle public-lead">
+              Class applications begin in the Student Portal. Sign in with your confirmed
+              email address, or create a student account before completing the application form.
+            </p>
+          </div>
+
+          <section className="public-steps" aria-labelledby="how-it-works-heading">
+            <h2 id="how-it-works-heading">How it works</h2>
+            <ol className="public-step-list">
+              <li className="public-step">
+                <span className="public-step-number" aria-hidden="true">1</span>
+                <div>
+                  <strong>Create or sign in</strong>
+                  <span>Use your confirmed email address to enter the Student Portal.</span>
+                </div>
+              </li>
+              <li className="public-step">
+                <span className="public-step-number" aria-hidden="true">2</span>
+                <div>
+                  <strong>Choose an available class</strong>
+                  <span>Review its confirmed day, time and location before applying.</span>
+                </div>
+              </li>
+              <li className="public-step">
+                <span className="public-step-number" aria-hidden="true">3</span>
+                <div>
+                  <strong>Follow your application</strong>
+                  <span>Track the pending application and its outcome in your portal.</span>
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          <div className="actions public-actions">
+            {isStudent ? (
+              <>
+                <a className="btn btn-primary" href="/student/apply">Continue to application</a>
+                <a className="btn btn-outline" href="/student">Student Portal</a>
+              </>
+            ) : user ? (
+              <a className="btn btn-primary" href={portalHref}>Open your portal</a>
+            ) : (
+              <>
+                <a className="btn btn-primary" href="/login?next=%2Fstudent%2Fapply">Sign in and apply</a>
+                <a className="btn btn-outline" href="/login?mode=signup&amp;next=%2Fstudent%2Fapply">Create student account</a>
+              </>
+            )}
+          </div>
+
+          <aside className="public-availability-note" aria-labelledby="available-classes-heading">
+            <span className="public-note-mark" aria-hidden="true" />
+            <div>
+              <h2 id="available-classes-heading">Current class choices</h2>
+              <p>
+                Available classes and their confirmed schedules are shown after you sign in.
+                The list is managed directly by ASWJ College administration.
+              </p>
+            </div>
+          </aside>
+        </section>
+      </div>
     </main>
   );
 }

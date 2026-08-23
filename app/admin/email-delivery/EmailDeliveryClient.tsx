@@ -320,7 +320,7 @@ export default function EmailDeliveryClient({
         ))}
         </div>
 
-        <div className="table-wrap">
+        <div className="table-wrap" role="region" aria-label="Email deliveries" tabIndex={0}>
         <table>
           <thead>
             <tr>
