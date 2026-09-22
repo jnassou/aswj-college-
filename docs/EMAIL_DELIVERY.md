@@ -146,6 +146,20 @@ change that secure message, use the Supabase Auth email template settings or a
 separately reviewed Send Email Hook; do not copy confirmation tokens into the
 ordinary application email queue.
 
+For external testers, configure **custom SMTP on the dev Supabase project**
+before testing sign-up. Supabase's default mail service only delivers to
+addresses belonging to project team members, and new free-tier projects cannot
+edit the default Auth templates. A separate Resend SMTP key can be entered in
+**Authentication → Emails → SMTP Settings** without putting it in the app or
+browser bundle. Resend documents `smtp.resend.com`, port `465`, username
+`resend`, and the Resend API key as the SMTP password. Use a sender on a
+verified domain and keep the credential out of this repository. This Auth SMTP
+configuration is separate from the app's `RESEND_API_KEY` and
+`EMAIL_DELIVERY_ENABLED` settings; enabling one does not enable the other.
+
+- [Supabase custom SMTP requirements](https://supabase.com/docs/guides/auth/auth-smtp)
+- [Resend SMTP settings](https://resend.com/docs/send-with-smtp)
+
 If the first welcome enqueue fails, a private reconciliation marker remains.
 The next authorised email-worker run retries it without blocking sign-up or
 confirmation. A recovered welcome is held for review rather than sent if its
