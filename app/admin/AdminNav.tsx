@@ -9,6 +9,7 @@ const links = [
   ['/admin/students', 'Students'],
   ['/admin/attendance-review', 'Attendance'],
   ['/admin/check-in', 'QR check-in'],
+  ['/admin/email-templates', 'Email messages'],
   ['/admin/email-delivery', 'Email delivery'],
   ['/admin/forms-imports', 'Legacy forms'],
 ] as const;

@@ -38,6 +38,7 @@ export default async function LoginPage({
   else if (error === 'missing') message = 'Enter a valid email and password.';
   else if (error === 'signup_fields') message = 'Complete all fields. Password must be between 8 and 256 characters.';
   else if (error === 'signup_failed') message = 'The account could not be created. The email may already be registered.';
+  else if (error === 'confirmation_failed') message = 'We could not complete sign-in from that confirmation link. Your email may already be confirmed, so try signing in or contact administration.';
   else if (error === 'confirm_required') message = 'Confirm your email address before applying for a class.';
   else if (error) message = 'Please check the details and try again.';
 

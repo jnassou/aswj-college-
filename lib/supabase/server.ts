@@ -9,11 +9,14 @@ export function hasSupabaseConfig() {
 }
 
 export async function createSupabaseServerClient() {
+  // Read the request cookies first so Next.js always treats callers as
+  // request-bound routes, including builds where deployment variables are not
+  // present in the local shell.
+  const cookieStore = await cookies();
+
   if (!hasSupabaseConfig()) {
     throw new Error('Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.');
   }
-
-  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

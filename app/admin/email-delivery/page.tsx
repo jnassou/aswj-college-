@@ -28,10 +28,13 @@ export default async function EmailDeliveryPage() {
   const rows: EmailDeliveryRow[] = (data ?? []).map((value: unknown) => {
     const row = value as Record<string, unknown>;
     const attempts = Number(row.attempt_count ?? 0);
+    const templateKey = String(row.template_key ?? '');
     return {
       id: String(row.delivery_id ?? row.id ?? ''),
       studentName: String(row.student_name ?? row.student_display_name ?? 'Student'),
-      event: String(row.event_label ?? row.template_key ?? 'Email notification'),
+      event: templateKey === 'account_welcome'
+        ? 'Account welcome'
+        : String(row.event_label ?? row.template_key ?? 'Email notification'),
       className: String(row.class_label ?? '').trim() || classLabel(row),
       queuedAt: String(row.queued_at ?? row.created_at ?? ''),
       status: combinedDeliveryStatus(row),

@@ -10,6 +10,7 @@ import {
   renderTransactionalEmail,
   type RenderedEmail,
 } from './render';
+import type { EmailTemplateDefinition, EmailTemplateKey } from './templates';
 
 const MAX_ATTEMPTS = 7;
 const MAX_BATCH_SIZE = 10;
@@ -85,6 +86,51 @@ function claimedDelivery(value: unknown): ClaimedDelivery | null {
 function safeEmailAddress(value: string) {
   if (!value || value.length > 320 || /[\r\n\u0000]/.test(value)) return false;
   return /^[^\s<>@,]+@[^\s<>@,]+\.[^\s<>@,]+$/.test(value);
+}
+
+function requiredTemplateText(
+  row: Record<string, unknown>,
+  key: string,
+  maxLength: number
+) {
+  const value = stringValue(row[key]);
+  if (!value || value.length > maxLength) {
+    throw new Error('The pinned email template was invalid.');
+  }
+  return value;
+}
+
+async function loadPinnedTemplate(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  workerId: string,
+  delivery: ClaimedDelivery,
+  templateKey: EmailTemplateKey
+): Promise<EmailTemplateDefinition> {
+  const { data, error } = await supabase.rpc('get_email_template_for_delivery', {
+    p_delivery_id: delivery.id,
+    p_worker_id: workerId,
+  });
+  if (error) throw new Error('The pinned email template could not be loaded.');
+
+  const candidate = Array.isArray(data) ? data[0] : data;
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    throw new Error('The pinned email template was not found.');
+  }
+  const row = candidate as Record<string, unknown>;
+  if (stringValue(row.template_key) !== templateKey) {
+    throw new Error('The pinned email template did not match the delivery.');
+  }
+  const templateVersion = requiredTemplateText(row, 'template_version', 50);
+
+  return {
+    templateKey,
+    version: templateVersion,
+    subjectTemplate: requiredTemplateText(row, 'subject_template', 160),
+    previewTemplate: requiredTemplateText(row, 'preview_template', 200),
+    headingTemplate: requiredTemplateText(row, 'heading_template', 120),
+    bodyTemplate: requiredTemplateText(row, 'body_template', 5000),
+    buttonLabel: requiredTemplateText(row, 'button_label', 80),
+  };
 }
 
 function providerError(
@@ -380,15 +426,39 @@ export async function processEmailDeliveryQueue(
         text: delivery.text,
       };
     } else {
+      const definition = await loadPinnedTemplate(
+        supabase,
+        workerId,
+        delivery,
+        delivery.templateKey
+      );
+      let pendingRender: RenderedEmail;
+      try {
+        pendingRender = renderTransactionalEmail(
+          delivery.templateKey,
+          delivery.payload,
+          configuration.config.appBaseUrl,
+          definition
+        );
+      } catch {
+        await recordFailed(
+          supabase,
+          workerId,
+          delivery.id,
+          'unsupported_template',
+          'The pinned email template could not be rendered safely.'
+        );
+        result.failed += 1;
+        continue;
+      }
+      // Database/RPC failures remain retryable through the lease recovery path.
+      // In particular, never overwrite a prepared snapshot if its response was
+      // lost after the database committed it.
       rendered = await prepareDelivery(
         supabase,
         workerId,
         delivery,
-        renderTransactionalEmail(
-          delivery.templateKey,
-          delivery.payload,
-          configuration.config.appBaseUrl
-        )
+        pendingRender
       );
     }
 
@@ -401,9 +471,9 @@ export async function processEmailDeliveryQueue(
       const response = await resend.emails.send(
         {
           from: configuration.config.from,
-          to: delivery.recipientEmail,
+          to: configuration.config.recipientOverride ?? delivery.recipientEmail,
           replyTo: configuration.config.replyTo,
-          subject: rendered.subject,
+          subject: `${configuration.config.subjectPrefix}${rendered.subject}`,
           html: rendered.html,
           text: rendered.text,
           tags: [

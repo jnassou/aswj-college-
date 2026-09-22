@@ -59,6 +59,7 @@ export async function getEmailDeliveryDetails(
   }
 
   const row = data as Record<string, unknown>;
+  const templateKey = String(row.template_key ?? '');
   const className = String(row.class_label ?? '').trim() || [
     optionalText(row.class_name),
     optionalText(row.class_term),
@@ -66,7 +67,9 @@ export async function getEmailDeliveryDetails(
   return {
     id: String(row.delivery_id ?? row.id ?? id),
     studentName: String(row.student_name ?? 'Student'),
-    event: String(row.event_label ?? row.template_key ?? 'Email notification'),
+    event: templateKey === 'account_welcome'
+      ? 'Account welcome'
+      : String(row.event_label ?? row.template_key ?? 'Email notification'),
     className: className || '—',
     recipientEmail: String(row.recipient_email ?? '—'),
     status: combinedDeliveryStatus(row),

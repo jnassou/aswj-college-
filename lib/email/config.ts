@@ -10,6 +10,8 @@ export type EmailConfiguration = {
   from: string;
   replyTo: string;
   appBaseUrl: string;
+  recipientOverride: string | null;
+  subjectPrefix: string;
 };
 
 export type EmailWebhookConfigurationStatus =
@@ -61,6 +63,19 @@ function normalizedBaseUrl(value: string) {
   }
 }
 
+function supabaseProjectRef(value: string) {
+  try {
+    const match = new URL(value).hostname.match(/^([a-z0-9]{20})\.supabase\.co$/i);
+    return match?.[1]?.toLowerCase() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function safeProjectRef(value: string) {
+  return /^[a-z0-9]{20}$/.test(value) ? value : null;
+}
+
 /**
  * Email is an optional operational integration. Configuration is evaluated only
  * at runtime so builds and the core Student Portal continue to work without a
@@ -68,12 +83,11 @@ function normalizedBaseUrl(value: string) {
  * allowed to claim an outbox row.
  */
 export function getEmailConfigurationStatus(): EmailConfigurationStatus {
-  const nonProductionVercelDeployment = Boolean(process.env.VERCEL_ENV)
-    && process.env.VERCEL_ENV !== 'production';
-  if (
-    clean(process.env.EMAIL_DELIVERY_ENABLED).toLowerCase() !== 'true'
-    || nonProductionVercelDeployment
-  ) {
+  // Only Vercel's explicit production marker may unlock real recipients.
+  // A local `next start` process also has NODE_ENV=production, but it must
+  // remain inside the test-recipient safety rail.
+  const nonProductionDeployment = process.env.VERCEL_ENV !== 'production';
+  if (clean(process.env.EMAIL_DELIVERY_ENABLED).toLowerCase() !== 'true') {
     return { state: 'disabled', missing: [] };
   }
 
@@ -83,6 +97,15 @@ export function getEmailConfigurationStatus(): EmailConfigurationStatus {
   const replyTo = clean(process.env.EMAIL_REPLY_TO);
   const rawBaseUrl = clean(process.env.EMAIL_APP_BASE_URL);
   const appBaseUrl = normalizedBaseUrl(rawBaseUrl);
+  const testRecipient = clean(process.env.EMAIL_DELIVERY_TEST_RECIPIENT);
+  const supabaseUrl = clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const currentProjectRef = supabaseProjectRef(supabaseUrl);
+  const expectedProjectRef = safeProjectRef(
+    clean(process.env.EMAIL_DELIVERY_EXPECTED_SUPABASE_PROJECT_REF).toLowerCase()
+  );
+  const productionProjectRef = safeProjectRef(
+    clean(process.env.EMAIL_DELIVERY_PRODUCTION_SUPABASE_PROJECT_REF).toLowerCase()
+  );
   const missing: string[] = [];
 
   if (!isSafeSecret(apiKey)) missing.push('RESEND_API_KEY');
@@ -90,8 +113,20 @@ export function getEmailConfigurationStatus(): EmailConfigurationStatus {
   if (!isSafeMailboxHeader(from)) missing.push('EMAIL_FROM');
   if (!isSafeMailboxHeader(replyTo)) missing.push('EMAIL_REPLY_TO');
   if (!appBaseUrl) missing.push('EMAIL_APP_BASE_URL');
-  if (!clean(process.env.NEXT_PUBLIC_SUPABASE_URL)) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+  if (!currentProjectRef) missing.push('NEXT_PUBLIC_SUPABASE_URL');
   if (!clean(process.env.SUPABASE_SERVICE_ROLE_KEY)) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (!expectedProjectRef || currentProjectRef !== expectedProjectRef) {
+    missing.push('EMAIL_DELIVERY_EXPECTED_SUPABASE_PROJECT_REF');
+  }
+  if (nonProductionDeployment && !isSafeMailboxHeader(testRecipient)) {
+    missing.push('EMAIL_DELIVERY_TEST_RECIPIENT');
+  }
+  if (
+    nonProductionDeployment
+    && (!productionProjectRef || currentProjectRef === productionProjectRef)
+  ) {
+    missing.push('EMAIL_DELIVERY_PRODUCTION_SUPABASE_PROJECT_REF');
+  }
 
   if (missing.length > 0 || !appBaseUrl) {
     return { state: 'not_configured', missing };
@@ -105,6 +140,8 @@ export function getEmailConfigurationStatus(): EmailConfigurationStatus {
       from,
       replyTo,
       appBaseUrl,
+      recipientOverride: nonProductionDeployment ? testRecipient : null,
+      subjectPrefix: nonProductionDeployment ? '[DEV] ' : '',
     },
   };
 }

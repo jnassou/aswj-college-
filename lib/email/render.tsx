@@ -1,9 +1,20 @@
 import 'server-only';
 
+import { Buffer } from 'node:buffer';
 import { createRequire } from 'node:module';
-import { createElement, type ReactNode } from 'react';
+import { createElement } from 'react';
 import TransactionalEmail from '../../emails/TransactionalEmail';
 import { studentPortalUrl } from './config';
+import {
+  DEFAULT_EMAIL_TEMPLATES,
+  emailTemplateParagraphs,
+  interpolateEmailTemplate,
+  type EmailTemplateDefinition,
+  type EmailTemplateKey,
+  type EmailTemplateValues,
+} from './templates';
+
+export { isEmailTemplateKey, type EmailTemplateKey } from './templates';
 
 // Next.js reserves direct react-dom/server imports for its component renderer.
 // This queue is an explicitly Node-only operational renderer, so load React's
@@ -12,17 +23,6 @@ const nodeRequire = createRequire(import.meta.url);
 const { renderToStaticMarkup } = nodeRequire(
   'react-dom/server'
 ) as typeof import('react-dom/server');
-
-export const EMAIL_TEMPLATE_KEYS = [
-  'application_received',
-  'application_accepted',
-  'application_waitlisted',
-  'application_declined',
-  'enrolment_suspended',
-  'enrolment_reinstated',
-] as const;
-
-export type EmailTemplateKey = (typeof EMAIL_TEMPLATE_KEYS)[number];
 
 export type EmailTemplatePayload = {
   firstName: string;
@@ -37,8 +37,6 @@ export type RenderedEmail = {
   html: string;
   text: string;
 };
-
-const TEMPLATE_VERSION = '1';
 
 function cleanText(value: unknown, fallback: string, maxLength = 200) {
   if (typeof value !== 'string') return fallback;
@@ -64,11 +62,6 @@ function valueFrom(payload: Record<string, unknown>, camel: string, snake: strin
   return payload[camel] ?? payload[snake];
 }
 
-export function isEmailTemplateKey(value: unknown): value is EmailTemplateKey {
-  return typeof value === 'string'
-    && (EMAIL_TEMPLATE_KEYS as readonly string[]).includes(value);
-}
-
 export function normalizeEmailTemplatePayload(payload: unknown): EmailTemplatePayload {
   const data = payload && typeof payload === 'object' && !Array.isArray(payload)
     ? payload as Record<string, unknown>
@@ -90,118 +83,90 @@ function classLabel(payload: EmailTemplatePayload) {
     : payload.className;
 }
 
-function paragraph(children: ReactNode) {
-  return createElement('p', { style: { margin: '0 0 16px' } }, children);
+function templateValues(
+  payload: EmailTemplatePayload,
+  portalUrl: string
+): EmailTemplateValues {
+  const label = classLabel(payload);
+  const waitlistPosition = payload.waitlistPosition?.toString() ?? '';
+  return {
+    first_name: payload.firstName,
+    class_name: payload.className,
+    class_term: payload.classTerm ?? '',
+    class_label: label,
+    waitlist_position: waitlistPosition,
+    waitlist_position_text: waitlistPosition
+      ? ` Your position at the time of this update is ${waitlistPosition}.`
+      : '',
+    student_portal_url: portalUrl,
+  };
 }
 
-function templateContent(templateKey: EmailTemplateKey, payload: EmailTemplatePayload) {
-  const label = classLabel(payload);
-  const greeting = paragraph(`Assalamu alaikum ${payload.firstName},`);
+function usableDefinition(
+  templateKey: EmailTemplateKey,
+  definition?: EmailTemplateDefinition
+) {
+  if (definition?.templateKey === templateKey) return definition;
+  return DEFAULT_EMAIL_TEMPLATES[templateKey];
+}
 
-  switch (templateKey) {
-    case 'application_received':
-      return {
-        subject: 'We received your ASWJ College application',
-        preview: `Your application for ${label} is awaiting review.`,
-        heading: 'Application received',
-        body: [
-          greeting,
-          paragraph(`We have received your application for ${label}.`),
-          paragraph('It is now awaiting an administrator review. We will send another update when a decision is recorded.'),
-        ],
-        text: `Assalamu alaikum ${payload.firstName},\n\nWe have received your application for ${label}. It is now awaiting an administrator review. We will send another update when a decision is recorded.`,
-      };
-    case 'application_accepted':
-      return {
-        subject: 'Your ASWJ College application was accepted',
-        preview: `Your application for ${label} has been accepted.`,
-        heading: 'Application accepted',
-        body: [
-          greeting,
-          paragraph(`Your application for ${label} has been accepted.`),
-          paragraph('Your active class enrolment and available class details are shown in the Student Portal.'),
-        ],
-        text: `Assalamu alaikum ${payload.firstName},\n\nYour application for ${label} has been accepted. Your active class enrolment and available class details are shown in the Student Portal.`,
-      };
-    case 'application_waitlisted': {
-      const position = payload.waitlistPosition
-        ? ` Your position at the time of this update is ${payload.waitlistPosition}.`
-        : '';
-      return {
-        subject: 'Your ASWJ College application is on the waiting list',
-        preview: `You have been placed on the waiting list for ${label}.`,
-        heading: 'Waiting list update',
-        body: [
-          greeting,
-          paragraph(`You have been placed on the waiting list for ${label}.${position}`),
-          paragraph('The Student Portal will show your latest application status.'),
-        ],
-        text: `Assalamu alaikum ${payload.firstName},\n\nYou have been placed on the waiting list for ${label}.${position} The Student Portal will show your latest application status.`,
-      };
-    }
-    case 'application_declined':
-      return {
-        subject: 'Update on your ASWJ College application',
-        preview: `A place was not offered for ${label}.`,
-        heading: 'Application update',
-        body: [
-          greeting,
-          paragraph(`A place was not offered for your application to ${label}.`),
-          paragraph('If you need more information, reply to this email to contact administration.'),
-        ],
-        text: `Assalamu alaikum ${payload.firstName},\n\nA place was not offered for your application to ${label}. If you need more information, reply to this email to contact administration.`,
-      };
-    case 'enrolment_suspended':
-      return {
-        subject: 'Your ASWJ College enrolment was suspended',
-        preview: `Your enrolment in ${label} has been suspended.`,
-        heading: 'Enrolment suspended',
-        body: [
-          greeting,
-          paragraph(`Your enrolment in ${label} has been suspended.`),
-          paragraph('Sign in to the Student Portal for your current enrolment status, or reply to this email to contact administration.'),
-        ],
-        text: `Assalamu alaikum ${payload.firstName},\n\nYour enrolment in ${label} has been suspended. Sign in to the Student Portal for your current enrolment status, or reply to this email to contact administration.`,
-      };
-    case 'enrolment_reinstated':
-      return {
-        subject: 'Your ASWJ College enrolment is active again',
-        preview: `Your enrolment in ${label} has been reinstated.`,
-        heading: 'Enrolment reinstated',
-        body: [
-          greeting,
-          paragraph(`Your enrolment in ${label} has been reinstated and is active again.`),
-          paragraph('Your current enrolment and class details are available in the Student Portal.'),
-        ],
-        text: `Assalamu alaikum ${payload.firstName},\n\nYour enrolment in ${label} has been reinstated and is active again. Your current enrolment and class details are available in the Student Portal.`,
-      };
+function assertRenderedText(
+  value: string,
+  maximum: number,
+  allowNewlines = false
+) {
+  const forbidden = allowNewlines
+    ? /[\u0000-\u0009\u000B\u000C\u000E-\u001F\u007F]/
+    : /[\u0000-\u001F\u007F]/;
+  if (!value.trim() || value.length > maximum || forbidden.test(value)) {
+    throw new Error('The email template rendered invalid content.');
   }
 }
 
 export function renderTransactionalEmail(
   templateKey: EmailTemplateKey,
   rawPayload: unknown,
-  appBaseUrl: string
+  appBaseUrl: string,
+  suppliedDefinition?: EmailTemplateDefinition
 ): RenderedEmail {
+  const definition = usableDefinition(templateKey, suppliedDefinition);
   const payload = normalizeEmailTemplatePayload(rawPayload);
-  const content = templateContent(templateKey, payload);
   const portalUrl = studentPortalUrl(appBaseUrl);
+  const values = templateValues(payload, portalUrl);
+  const subject = interpolateEmailTemplate(definition.subjectTemplate, values);
+  const preview = interpolateEmailTemplate(definition.previewTemplate, values);
+  const heading = interpolateEmailTemplate(definition.headingTemplate, values);
+  const body = interpolateEmailTemplate(definition.bodyTemplate, values);
+  const buttonLabel = interpolateEmailTemplate(definition.buttonLabel, values);
+  assertRenderedText(subject, 500);
+  assertRenderedText(preview, 1000);
+  assertRenderedText(heading, 1000);
+  assertRenderedText(body, 40_000, true);
+  assertRenderedText(buttonLabel, 200);
+  const paragraphs = emailTemplateParagraphs(body);
   const html = '<!doctype html>' + renderToStaticMarkup(
     <TransactionalEmail
-      preview={content.preview}
-      heading={content.heading}
+      preview={preview}
+      heading={heading}
       portalUrl={portalUrl}
+      buttonLabel={buttonLabel}
     >
-      {content.body.map((item, index) => (
-        <div key={index}>{item}</div>
+      {paragraphs.map((paragraph, index) => createElement(
+        'p',
+        { key: index, style: { margin: '0 0 16px', whiteSpace: 'pre-line' } },
+        paragraph
       ))}
     </TransactionalEmail>
   );
+  const text = `${body}\n\n${buttonLabel}: ${portalUrl}\n\nThis is an operational message about your ASWJ College record.`;
+  if (Buffer.byteLength(html, 'utf8') > 200_000 || Buffer.byteLength(text, 'utf8') > 50_000) {
+    throw new Error('The rendered email exceeded the delivery size limit.');
+  }
 
   return {
-    templateVersion: TEMPLATE_VERSION,
-    subject: content.subject,
+    templateVersion: definition.version,
+    subject,
     html,
-    text: `${content.text}\n\nOpen Student Portal: ${portalUrl}\n\nThis is an operational message about your ASWJ College record.`,
+    text,
   };
 }

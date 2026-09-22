@@ -5,6 +5,7 @@ export type TransactionalEmailProps = {
   heading: string;
   children: ReactNode;
   portalUrl: string;
+  buttonLabel: string;
 };
 
 const bodyStyle: CSSProperties = {
@@ -30,6 +31,7 @@ export default function TransactionalEmail({
   heading,
   children,
   portalUrl,
+  buttonLabel,
 }: TransactionalEmailProps) {
   return (
     <html lang="en">
@@ -84,7 +86,7 @@ export default function TransactionalEmail({
                       textDecoration: 'none',
                     }}
                   >
-                    Open Student Portal
+                    {buttonLabel}
                   </a>
                 </p>
                 <p style={{ margin: '24px 0 0', color: '#5f716b', fontSize: '13px' }}>
