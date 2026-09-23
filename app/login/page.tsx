@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { login, signup } from './actions';
+import { PendingSubmitButton } from '../auth/PendingSubmitButton';
 
 type SearchValue = string | string[] | undefined;
 
@@ -14,6 +15,7 @@ export default async function LoginPage({
     error?: SearchValue;
     mode?: SearchValue;
     created?: SearchValue;
+    password_reset?: SearchValue;
     next?: SearchValue;
   }>;
 }) {
@@ -21,6 +23,7 @@ export default async function LoginPage({
   const error = firstValue(params.error);
   const signupMode = firstValue(params.mode) === 'signup';
   const created = firstValue(params.created) === '1';
+  const passwordReset = firstValue(params.password_reset) === '1';
   const nextPath = firstValue(params.next) === '/student/apply' ? '/student/apply' : null;
 
   const signInParams = new URLSearchParams();
@@ -34,13 +37,17 @@ export default async function LoginPage({
 
   let message = '';
   if (created) message = 'Account created. Check your email to confirm your account, then sign in.';
+  else if (passwordReset) message = 'Password updated. Sign in with your new password.';
   else if (error === 'invalid') message = 'Email or password was not accepted.';
   else if (error === 'missing') message = 'Enter a valid email and password.';
   else if (error === 'signup_fields') message = 'Complete all fields. Password must be between 8 and 256 characters.';
   else if (error === 'signup_failed') message = 'The account could not be created. The email may already be registered.';
+  else if (error === 'signup_already_sent') message = 'A confirmation email was already requested. Check your inbox and junk folder before trying again.';
   else if (error === 'confirmation_failed') message = 'We could not complete sign-in from that confirmation link. Your email may already be confirmed, so try signing in or contact administration.';
   else if (error === 'confirm_required') message = 'Confirm your email address before applying for a class.';
   else if (error) message = 'Please check the details and try again.';
+
+  const success = created || passwordReset;
 
   return (
     <main id="main-content" className="login-shell auth-shell" tabIndex={-1}>
@@ -76,8 +83,8 @@ export default async function LoginPage({
 
           {message && (
             <div
-              className="notice auth-notice"
-              role={created ? 'status' : 'alert'}
+              className={`notice auth-notice${success ? ' success' : ''}`}
+              role={success ? 'status' : 'alert'}
               aria-live="polite"
             >
               {message}
@@ -115,7 +122,7 @@ export default async function LoginPage({
                 />
                 <span id="signup-password-helper" className="field-helper">Use at least 8 characters.</span>
               </div>
-              <button className="btn btn-primary auth-submit" type="submit">Create account</button>
+              <PendingSubmitButton idleLabel="Create account" pendingLabel="Creating account…" />
               <p className="auth-switch">Already registered? <a className="text-link" href={signInHref}>Sign in</a></p>
             </form>
           ) : (
@@ -129,7 +136,8 @@ export default async function LoginPage({
                 <label htmlFor="login-password">Password</label>
                 <input id="login-password" name="password" type="password" autoComplete="current-password" maxLength={256} required />
               </div>
-              <button className="btn btn-primary auth-submit" type="submit">Sign in</button>
+              <PendingSubmitButton idleLabel="Sign in" pendingLabel="Signing in…" />
+              <p className="auth-switch"><a className="text-link" href="/forgot-password">Forgot your password?</a></p>
               <p className="auth-switch">New student? <a className="text-link" href={signUpHref}>Create an account</a></p>
             </form>
           )}

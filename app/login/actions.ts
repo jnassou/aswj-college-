@@ -2,39 +2,12 @@
 
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '../../lib/supabase/server';
+import { applicationUrl } from '../../lib/auth/application-origin';
 
 const APPLY_PATH = '/student/apply';
 
-function safeApplicationOrigin() {
-  const candidates = [
-    process.env.EMAIL_APP_BASE_URL,
-    process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : '',
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      const url = new URL(candidate ?? '');
-      const local = process.env.NODE_ENV !== 'production'
-        && ['localhost', '127.0.0.1'].includes(url.hostname);
-      if (
-        (url.protocol === 'https:' || (local && url.protocol === 'http:'))
-        && !url.username
-        && !url.password
-      ) {
-        return url.origin;
-      }
-    } catch {
-      // Try the next trusted deployment setting.
-    }
-  }
-
-  return null;
-}
-
 function confirmationRedirect() {
-  const origin = safeApplicationOrigin();
-  if (!origin) return undefined;
-  return new URL('/auth/callback', origin).toString();
+  return applicationUrl('/auth/callback');
 }
 
 function safeNext(value: FormDataEntryValue | null) {
@@ -103,7 +76,12 @@ export async function signup(formData: FormData) {
     },
   });
 
-  if (error) loginRedirect('signup_failed', nextPath, true);
+  if (error) {
+    if (error.status === 429 || error.code === 'over_email_send_rate_limit') {
+      loginRedirect('signup_already_sent', nextPath, true);
+    }
+    loginRedirect('signup_failed', nextPath, true);
+  }
 
   // Hosted Supabase normally requires email confirmation. If a session exists,
   // the user can enter the Student Portal immediately; otherwise show confirmation state.

@@ -185,6 +185,19 @@ Do not use a wildcard production redirect. `EMAIL_APP_BASE_URL` is required
 and must point to the same stable origin in each environment so confirmation
 returns and Student Portal links do not use an ephemeral deployment hostname.
 
+For password recovery that also works when a student opens the email on a
+different device, set the Supabase **Reset password** email template link to:
+
+`{{ .RedirectTo }}/verify?token_hash={{ .TokenHash }}&type=recovery`
+
+That link first opens a confirmation page; the one-time recovery token is used
+only after the student presses **Continue**, so automated email-link previews do
+not consume it. `RedirectTo` is the trusted, server-selected
+`<environment>/auth/recovery` URL, so each environment returns to the correct
+site. Keep that exact `/auth/recovery` Redirect URL allow-listed. For development, add
+the exact stable dev origin followed by `/auth/recovery`; add the equivalent
+custom-domain URL separately for Production.
+
 ## Safe dev testing
 
 Keep `EMAIL_DELIVERY_ENABLED=false` in Preview until a controlled recipient is

@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+type ResponseHeaderSetter = (headers: Record<string, string>) => void;
+
 export function hasSupabaseConfig() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -8,7 +10,7 @@ export function hasSupabaseConfig() {
   );
 }
 
-export async function createSupabaseServerClient() {
+export async function createSupabaseServerClient(setResponseHeaders?: ResponseHeaderSetter) {
   // Read the request cookies first so Next.js always treats callers as
   // request-bound routes, including builds where deployment variables are not
   // present in the local shell.
@@ -26,11 +28,12 @@ export async function createSupabaseServerClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headersToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
+            setResponseHeaders?.(headersToSet);
           } catch {
             // Cookie writes may be unavailable while rendering Server Components.
             // Session refresh should be handled by proxy/middleware when auth is enabled.
