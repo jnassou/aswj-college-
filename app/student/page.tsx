@@ -15,6 +15,7 @@ import {
   PortalNotification,
 } from './portal-data';
 import { formatClassTime } from '../../lib/class-time';
+import PortalAutoRefresh from './PortalAutoRefresh';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -229,6 +230,7 @@ export default async function StudentPortal({
 
   return (
     <main id="main-content" className="student-portal" tabIndex={-1}>
+      <PortalAutoRefresh />
       <header className="student-header">
         <div className="student-brand-row">
           <Image
@@ -274,7 +276,7 @@ export default async function StudentPortal({
           <strong>{currentEnrolments}</strong>
           <span>Enrolled or under review</span>
         </div>
-        <div className="card portal-metric">
+        <div className="card portal-metric" aria-live="polite" aria-atomic="true">
           <span className="small">Unread updates</span>
           <strong>{unread}</strong>
           <span>{data.notifications.length} recent notifications</span>
