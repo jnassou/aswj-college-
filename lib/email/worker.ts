@@ -41,6 +41,7 @@ export type EmailDeliveryBatchResult = {
 type DeliveryQueueOptions = {
   limit?: number;
   leaseSeconds?: number;
+  deliveryId?: string;
 };
 
 type ClassifiedError = {
@@ -362,13 +363,27 @@ export async function processEmailDeliveryQueue(
   const workerId = crypto.randomUUID();
   const supabase = createSupabaseAdminClient();
   const resend = createResendClient(configuration.config.apiKey);
-  const { data, error } = await supabase.rpc('claim_email_deliveries', {
-    p_worker_id: workerId,
-    p_batch_limit: limit,
-    p_lease_seconds: leaseSeconds,
-  });
+  const deliveryId = options.deliveryId;
+  if (deliveryId && !UUID_PATTERN.test(deliveryId)) {
+    throw new Error('The selected email delivery was invalid.');
+  }
+  const { data, error } = deliveryId
+    ? await supabase.rpc('claim_email_delivery', {
+      p_worker_id: workerId,
+      p_delivery_id: deliveryId,
+      p_lease_seconds: leaseSeconds,
+    })
+    : await supabase.rpc('claim_email_deliveries', {
+      p_worker_id: workerId,
+      p_batch_limit: limit,
+      p_lease_seconds: leaseSeconds,
+    });
 
-  if (error) throw new Error('The email delivery queue could not be claimed.');
+  if (error) {
+    throw new Error(deliveryId
+      ? 'The selected email delivery could not be claimed.'
+      : 'The email delivery queue could not be claimed.');
+  }
 
   if (!Array.isArray(data)) {
     throw new Error('The claimed email delivery batch was invalid.');
@@ -523,4 +538,15 @@ export async function processEmailDeliveryQueue(
   }
 
   return result;
+}
+
+export async function processEmailDelivery(
+  deliveryId: string,
+  options: Pick<DeliveryQueueOptions, 'leaseSeconds'> = {}
+) {
+  return processEmailDeliveryQueue({
+    deliveryId,
+    limit: 1,
+    leaseSeconds: options.leaseSeconds,
+  });
 }

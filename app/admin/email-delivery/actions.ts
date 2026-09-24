@@ -2,9 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import {
+  processEmailDelivery,
   processEmailDeliveryQueue,
   type EmailDeliveryBatchResult,
 } from '../../../lib/email/worker';
+import { getEmailConfigurationStatus } from '../../../lib/email/config';
 import { requireAdmin } from '../../../lib/supabase/server';
 import {
   combinedDeliveryStatus,
@@ -84,9 +86,27 @@ export async function getEmailDeliveryDetails(
   };
 }
 
-export async function retryEmailDelivery(deliveryId: string) {
+function unavailableResult(
+  status: 'disabled' | 'not_configured'
+): EmailDeliveryBatchResult {
+  return {
+    status,
+    claimed: 0,
+    submitted: 0,
+    retryScheduled: 0,
+    failed: 0,
+  };
+}
+
+export async function retryEmailDelivery(
+  deliveryId: string
+): Promise<EmailDeliveryBatchResult> {
   const { supabase } = await requireAdmin();
   const id = requiredId(deliveryId);
+  const configuration = getEmailConfigurationStatus();
+  if (configuration.state !== 'ready') {
+    return unavailableResult(configuration.state);
+  }
   const { data, error } = await supabase.rpc('admin_retry_email_delivery', {
     p_delivery_id: id,
   });
@@ -100,8 +120,23 @@ export async function retryEmailDelivery(deliveryId: string) {
     throw new Error('This email delivery could not be queued for retry.');
   }
 
-  revalidatePath('/admin/email-delivery');
-  return { status: 'queued' as const };
+  try {
+    const result = await processEmailDelivery(id, { leaseSeconds: 120 });
+    revalidatePath('/admin/email-delivery');
+    return result;
+  } catch (processingError) {
+    console.error(JSON.stringify({
+      level: 'error',
+      message: 'Admin requested targeted email delivery processing failed.',
+      error: processingError instanceof Error
+        ? processingError.message
+        : 'Unknown error',
+    }));
+    revalidatePath('/admin/email-delivery');
+    throw new Error(
+      'The email retry was saved safely, but it could not be sent now. Try again shortly.'
+    );
+  }
 }
 
 export async function processEmailQueueNow(): Promise<EmailDeliveryBatchResult> {

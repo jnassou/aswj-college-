@@ -204,16 +204,43 @@ export default function EmailDeliveryClient({
     setPendingKey(`retry:${selected.id}`);
     startTransition(async () => {
       try {
-        await retryEmailDelivery(selected.id);
+        const result = await retryEmailDelivery(selected.id);
         setSelected(null);
         setDetail(null);
-        setMessage({
-          tone: 'success',
-          text: 'The failed email was queued for retry. Use Process queue to send ready emails now.',
-        });
+        if (result.status === 'disabled') {
+          setMessage({
+            tone: 'warning',
+            text: 'Email delivery is switched off. The selected email was not requeued or sent.',
+          });
+        } else if (result.status === 'not_configured') {
+          setMessage({
+            tone: 'warning',
+            text: 'The server email provider is not configured. The selected email was not requeued or sent.',
+          });
+        } else if (result.submitted === 1) {
+          setMessage({
+            tone: 'success',
+            text: 'The selected email was submitted to the email provider.',
+          });
+        } else if (result.retryScheduled === 1) {
+          setMessage({
+            tone: 'warning',
+            text: 'The provider could not accept the selected email yet, so it was scheduled for another retry.',
+          });
+        } else if (result.failed === 1) {
+          setMessage({
+            tone: 'warning',
+            text: 'The provider rejected the selected email. Review its updated delivery details.',
+          });
+        } else {
+          setMessage({
+            tone: 'warning',
+            text: 'The selected email was not sent because its delivery record changed. Review its current status.',
+          });
+        }
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'The email could not be queued for retry.');
+        setError(err instanceof Error ? err.message : 'The email could not be retried and sent.');
       } finally {
         setPendingKey('');
       }
@@ -429,8 +456,13 @@ export default function EmailDeliveryClient({
                 Close
               </button>
               {detail?.retryAllowed && (
-                <button className="btn btn-primary" type="button" disabled={pending} onClick={retry}>
-                  {pendingKey === `retry:${selected.id}` ? 'Queueing…' : 'Queue retry'}
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  disabled={pending || providerStatus !== 'ready'}
+                  onClick={retry}
+                >
+                  {pendingKey === `retry:${selected.id}` ? 'Retrying…' : 'Retry and send'}
                 </button>
               )}
             </div>
